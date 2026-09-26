@@ -63,20 +63,41 @@ h1{
 :root[data-theme="dark"] .tagline{color:var(--gold)}
 @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tagline{color:var(--gold)} }
 
+.lieux{
+  display:flex; justify-content:center; gap:6px; margin:14px auto 0; flex-wrap:wrap;
+}
+.lieux button{
+  font:600 .88rem/1 var(--sans); color:var(--muted); background:transparent; cursor:pointer;
+  border:1.5px solid var(--line); border-radius:999px; padding:8px 14px;
+}
+.lieux button[aria-pressed="true"]{color:var(--ink); border-color:var(--velvet); background:var(--card)}
+.home{color:var(--muted); font-size:.85rem; margin:8px 0 0}
 .modes{
-  display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px;
+  display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; padding:5px;
   background:var(--card); border:1px solid var(--line); border-radius:999px;
-  margin:18px auto 24px; max-width:360px; backdrop-filter:blur(6px);
+  margin:16px auto 24px; max-width:400px; backdrop-filter:blur(6px);
 }
 .modes button{
-  font:600 .98rem/1 var(--sans); color:var(--ink); background:transparent;
-  border:0; border-radius:999px; padding:12px 10px; cursor:pointer;
+  font:600 .95rem/1 var(--sans); color:var(--ink); background:transparent;
+  border:0; border-radius:999px; padding:12px 6px; cursor:pointer; white-space:nowrap;
 }
 .modes button[aria-pressed="true"]{background:var(--sun); color:#141E38}
+.shuffle{display:block; margin:14px auto 0}
+.shuffle[hidden]{display:none}
+.near{list-style:none; margin:0 0 14px; padding:0; text-align:left}
+.near[hidden]{display:none}
+.near-title{font-weight:700; font-size:.9rem; margin:0 0 8px; text-align:center}
+.near-title[hidden]{display:none}
+.near li{border-top:1px solid var(--line)}
+.near a{display:block; padding:9px 4px; color:var(--ink); text-decoration:none}
+.near a:hover strong{text-decoration:underline}
+.near small{display:block; color:var(--muted); font-size:.82rem; margin-top:2px}
+.credit{text-align:center; color:var(--muted); font-size:.75rem; margin:22px 0 0}
+.credit a{color:inherit}
 
 .wheel-wrap{position:relative; width:min(92vw,420px); aspect-ratio:1; margin:0 auto}
 #wheel{
-  width:100%; height:100%; display:block;
+  width:100%; height:100%; display:block; pointer-events:none;
   transition:transform 4.4s cubic-bezier(.15,.7,.1,1);
   will-change:transform;
 }
@@ -162,11 +183,17 @@ details.edit[open] summary::after{content:" ▴"}
   <header>
     <h1>Chrobáčik, on mange quoi ?</h1>
     <p class="tagline">Tu ne choisis pas. La roue choisit.</p>
+    <div class="lieux" role="group" aria-label="Où es-tu">
+      <button type="button" data-lieu="la" aria-pressed="true">Los Angeles 🌴</button>
+      <button type="button" data-lieu="mtr" aria-pressed="false">Chez moi 🥐</button>
+    </div>
+    <p class="home" id="home"></p>
   </header>
 
   <div class="modes" role="group" aria-label="Où manger">
-    <button type="button" data-mode="sortir" aria-pressed="true">On sort 🌴</button>
-    <button type="button" data-mode="maison" aria-pressed="false">À la maison 🏠</button>
+    <button type="button" data-mode="sortir" aria-pressed="true">On sort 🍽️</button>
+    <button type="button" data-mode="resto" aria-pressed="false">Resto 🎲</button>
+    <button type="button" data-mode="maison" aria-pressed="false">Maison 🏠</button>
   </div>
 
   <div class="wheel-wrap">
@@ -177,20 +204,23 @@ details.edit[open] summary::after{content:" ▴"}
     <svg id="wheel" viewBox="0 0 440 440" role="img" aria-label="Roue des repas"></svg>
     <button type="button" class="spin-btn" id="spin">Tourner</button>
   </div>
+  <button type="button" class="btn shuffle" id="shuffle" hidden>🔀 Autres restos</button>
 
   <section class="result" id="result" hidden aria-live="polite">
     <span class="emoji" id="r-emoji"></span>
     <h2 id="r-name"></h2>
     <p class="quip" id="r-quip"></p>
     <p class="detail" id="r-detail"></p>
-    <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir les adresses près de UCLA</a>
+    <p class="near-title" id="r-near-title" hidden></p>
+    <ul class="near" id="r-near" hidden></ul>
+    <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir sur Google Maps</a>
     <div class="actions">
       <button type="button" class="btn" id="veto">Veto</button>
       <button type="button" class="btn primary" id="again">Relancer</button>
     </div>
   </section>
 
-  <details class="edit">
+  <details class="edit" id="edit">
     <summary>Modifier la roue</summary>
     <div class="edit-body">
       <ul class="chips" id="chips"></ul>
@@ -204,8 +234,10 @@ details.edit[open] summary::after{content:" ▴"}
     </div>
   </details>
   <p class="sync" id="sync" aria-live="polite"></p>
+  <p class="credit">Restaurants : © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a></p>
 </main>
 
+<script src="restaurants.js"></script>
 <script>
 (function(){
   var DEFAULTS = {
@@ -264,6 +296,110 @@ details.edit[open] summary::after{content:" ▴"}
     {f:"#2F4A86", t:"#FCEFD6"},
     {f:"#5E7B3A", t:"#FCEFD6"}
   ];
+
+  /* ---------- Restaurants à proximité (restaurants.js, OpenStreetMap) ---------- */
+  var RESTOS = window.RESTOS || {};
+  var LIEU_KEY = "roue-chrobacik-lieu";
+  /* Cuisine de la roue -> tags OSM : d'abord les correspondances exactes, puis les proches. */
+  var CUISINES = {
+    "tacos":[["tacos","mexican","tex-mex"],["french_tacos"]],
+    "pizza":[["pizza"]],
+    "sushi":[["sushi"],["japanese"]],
+    "ramen":[["ramen"],["noodle","japanese"]],
+    "burger":[["burger"]],
+    "poke bowl":[["poke"],["salad"]],
+    "thai food":[["thai","lao"]],
+    "korean bbq":[["korean"]],
+    "mediterranean food":[["falafel","mediterranean","lebanese"],["greek","turkish","kebab"]],
+    "brunch":[["brunch","breakfast","crepe","bagel"]],
+    "persian restaurant":[["persian"],["kebab","turkish"]],
+    "dim sum":[["dim_sum"],["chinese","cantonese"]],
+    "indian food":[["indian"]],
+    "pho":[["pho"],["vietnamese"]],
+    "italian restaurant":[["italian","pasta"]],
+    "burrito":[["burrito"],["mexican"],["french_tacos"]],
+    "fried chicken":[["chicken","wings"]],
+    "hot pot":[["hot_pot"],["sichuanese","chinese"]]
+  };
+  var EMOJI = [
+    ["pizza","🍕"],["burger","🍔"],["sushi","🍣"],["ramen","🍜"],["noodle","🍜"],["pho","🥢"],
+    ["vietnamese","🥢"],["burrito","🌯"],["tacos","🌮"],["mexican","🌮"],["tex-mex","🌮"],["french_tacos","🌯"],
+    ["dim_sum","🥟"],["chinese","🥡"],["japanese","🍱"],["korean","🥩"],["thai","🍛"],["lao","🍛"],["indian","🥘"],
+    ["italian","🍝"],["persian","🍢"],["kebab","🥙"],["turkish","🥙"],["falafel","🧆"],["mediterranean","🧆"],
+    ["lebanese","🧆"],["greek","🧆"],["chicken","🍗"],["wings","🍗"],["sandwich","🥪"],["poke","🥗"],["salad","🥗"],
+    ["crepe","🥞"],["brunch","🥞"],["breakfast","🥞"],["bagel","🥯"],["seafood","🦀"],["steak_house","🥩"],
+    ["couscous","🍲"],["french","🥖"],["brasserie","🥖"],["asian","🥢"]
+  ];
+  var CUISINE_FR = {
+    pizza:"Pizza", burger:"Burger", sushi:"Sushi", ramen:"Ramen", noodle:"Nouilles", pho:"Phở", vietnamese:"Vietnamien",
+    burrito:"Burrito", tacos:"Tacos", mexican:"Mexicain", "tex-mex":"Tex-mex", french_tacos:"French tacos",
+    dim_sum:"Dim sum", chinese:"Chinois", cantonese:"Cantonais", sichuanese:"Sichuanais", japanese:"Japonais",
+    korean:"Coréen", thai:"Thaï", lao:"Laotien", indian:"Indien", italian:"Italien", persian:"Persan", kebab:"Kebab",
+    turkish:"Turc", falafel:"Falafel", mediterranean:"Méditerranéen", lebanese:"Libanais", greek:"Grec",
+    chicken:"Poulet", wings:"Wings", sandwich:"Sandwichs", poke:"Poke", salad:"Salades", crepe:"Crêpes",
+    brunch:"Brunch", breakfast:"Petit-déj", bagel:"Bagels", seafood:"Fruits de mer", steak_house:"Grill",
+    couscous:"Couscous", french:"Français", brasserie:"Brasserie", asian:"Asiatique", american:"Américain",
+    cambodian:"Cambodgien", taiwanese:"Taïwanais", yemeni:"Yéménite", mauritian:"Mauricien", african:"Africain",
+    portuguese:"Portugais", fine_dining:"Gastronomique", street_food:"Street food", yakitori:"Yakitori"
+  };
+  function loadLieu(){
+    try{ var l = localStorage.getItem(LIEU_KEY); if(l && RESTOS[l]) return l; }catch(e){}
+    return "la";
+  }
+  function lieu(){ return RESTOS[state.lieu] || {list:[], home:"", city:""}; }
+  function tags(r){ return r[1] ? r[1].split(";") : []; }
+  function restoEmoji(r){
+    var t = tags(r);
+    for(var i=0;i<EMOJI.length;i++) if(t.indexOf(EMOJI[i][0]) >= 0) return EMOJI[i][1];
+    return "🍽️";
+  }
+  function restoCuisine(r){
+    var t = tags(r).map(function(k){ return CUISINE_FR[k]; }).filter(Boolean);
+    return t.length ? t.slice(0,2).join(" · ") : "Restaurant";
+  }
+  function fmtDist(m){ return m < 1000 ? m + " m" : (m/1000).toFixed(1).replace(".", ",") + " km"; }
+  function restoLine(r){ return fmtDist(r[4]) + (r[5] ? " · " + r[5] : ""); }
+  function restoMaps(r){
+    var L = lieu();
+    return "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(r[0] + ", " + (r[5] ? r[5] + ", " : "") + L.city);
+  }
+  function norm(s){ return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
+  /* Restaurants du lieu courant qui servent la cuisine choisie, du plus proche au plus loin. */
+  function restosFor(it){
+    var all = lieu().list || [];
+    var groups = CUISINES[norm(it.q)] || CUISINES[norm(it.n)];
+    if(groups){
+      for(var g=0; g<groups.length; g++){
+        var hit = all.filter(function(r){ return tags(r).some(function(k){ return groups[g].indexOf(k) >= 0; }); });
+        if(hit.length) return hit;
+      }
+      return [];
+    }
+    var words = norm((it.q || "") + " " + it.n).split(/[^a-z0-9]+/).filter(function(w){ return w.length > 2; });
+    if(!words.length) return [];
+    return all.filter(function(r){
+      var hay = norm(r[0] + " " + r[1] + " " + restoCuisine(r));
+      return words.some(function(w){ return hay.indexOf(w) >= 0; });
+    });
+  }
+  function pickNear(arr, k){
+    var p = arr.slice(0, 8), out = [];
+    while(p.length && out.length < k) out.push(p.splice(Math.floor(Math.random() * p.length), 1)[0]);
+    return out.sort(function(a,b){ return a[4] - b[4]; });
+  }
+  var WHEEL_RESTOS = 12;
+  function buildRestoWheel(){
+    var pool = (lieu().list || []).slice(), seen = {}, out = [];
+    while(pool.length && out.length < WHEEL_RESTOS){
+      var r = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
+      var key = norm(r[0]);
+      if(seen[key]) continue;
+      seen[key] = true;
+      out.push({e: restoEmoji(r), n: r[0], d: restoCuisine(r) + " — " + restoLine(r), r: r});
+    }
+    state.restoWheel = out;
+  }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
   function load(){
@@ -345,14 +481,14 @@ details.edit[open] summary::after{content:" ▴"}
 
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var state = {
-    mode:"sortir", lists:load(), rotation:0, spinning:false,
+    mode:"sortir", lists:load(), rotation:0, spinning:false, lieu:loadLieu(), restoWheel:[],
     vetoed:{}, vetosLeft:2, relances:0, current:null
   };
 
   var $ = function(id){ return document.getElementById(id); };
   var wheel = $("wheel"), spinBtn = $("spin"), result = $("result");
 
-  function list(){ return state.lists[state.mode]; }
+  function list(){ return state.mode === "resto" ? state.restoWheel : state.lists[state.mode]; }
   function label(it){
     var s = (it.e ? it.e + " " : "") + it.n;
     return s.length > 16 ? s.slice(0,15) + "…" : s;
@@ -406,13 +542,13 @@ details.edit[open] summary::after{content:" ▴"}
     var delta = ((desired - cur) + 360) % 360;
     state.rotation += (reduce ? 2 : 6) * 360 + delta;
     state.spinning = true;
-    spinBtn.disabled = true; $("veto").disabled = true; $("again").disabled = true;
+    spinBtn.disabled = true; $("veto").disabled = true; $("again").disabled = true; $("shuffle").disabled = true;
     wheel.style.transform = "rotate(" + state.rotation + "deg)";
     var done = false;
     function finish(){
       if(done) return; done = true;
       state.spinning = false; state.current = win;
-      spinBtn.disabled = false;
+      spinBtn.disabled = false; $("shuffle").disabled = false;
       showResult();
       try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
     }
@@ -430,10 +566,29 @@ details.edit[open] summary::after{content:" ▴"}
     else quip = QUIPS[Math.floor(Math.random() * QUIPS.length)];
     $("r-quip").textContent = quip;
     $("r-detail").textContent = it.d || "Idée à toi. Improvise.";
-    var maps = $("r-maps");
-    if(state.mode === "sortir"){
-      var q = (it.q || it.n) + " near UCLA Westwood Los Angeles";
+    var maps = $("r-maps"), near = $("r-near"), nearTitle = $("r-near-title"), L = lieu();
+    near.innerHTML = ""; near.hidden = true; nearTitle.hidden = true;
+    if(state.mode === "resto" && it.r){
+      maps.href = restoMaps(it.r);
+      maps.textContent = "Y aller (Google Maps)";
+      maps.hidden = false;
+    } else if(state.mode === "sortir"){
+      var found = restosFor(it), picks = pickNear(found, 3);
+      if(picks.length){
+        nearTitle.textContent = found.length + " adresse" + (found.length > 1 ? "s" : "") + " près de " + L.home;
+        picks.forEach(function(r){
+          var li = document.createElement("li"), a = document.createElement("a"),
+              b = document.createElement("strong"), sm = document.createElement("small");
+          a.href = restoMaps(r); a.target = "_blank"; a.rel = "noopener";
+          b.textContent = restoEmoji(r) + " " + r[0];
+          sm.textContent = restoCuisine(r) + " — " + restoLine(r);
+          a.appendChild(b); a.appendChild(sm); li.appendChild(a); near.appendChild(li);
+        });
+        nearTitle.hidden = false; near.hidden = false;
+      }
+      var q = (it.q || it.n) + " near " + L.home + ", " + L.city;
       maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+      maps.textContent = picks.length ? "Voir tout sur Google Maps" : "Chercher sur Google Maps";
       maps.hidden = false;
     } else {
       maps.hidden = true;
@@ -473,7 +628,34 @@ details.edit[open] summary::after{content:" ▴"}
     });
   }
 
-  function refreshAll(){ drawWheel(); drawChips(); }
+  function refreshAll(){
+    var resto = state.mode === "resto";
+    if(resto && !state.restoWheel.length) buildRestoWheel();
+    $("edit").hidden = resto;
+    $("shuffle").hidden = !resto;
+    var L = lieu();
+    $("home").textContent = "📍 " + L.home + " — " + (L.list ? L.list.length : 0) + " restos dans le coin";
+    drawWheel(); if(!resto) drawChips();
+  }
+
+  document.querySelectorAll(".lieux button").forEach(function(btn){
+    btn.setAttribute("aria-pressed", btn.dataset.lieu === state.lieu ? "true" : "false");
+    btn.addEventListener("click", function(){
+      if(state.spinning || !RESTOS[btn.dataset.lieu]) return;
+      state.lieu = btn.dataset.lieu;
+      try{ localStorage.setItem(LIEU_KEY, state.lieu); }catch(e){}
+      document.querySelectorAll(".lieux button").forEach(function(b){
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      state.restoWheel = [];
+      resetRound(); refreshAll();
+    });
+  });
+
+  $("shuffle").addEventListener("click", function(){
+    if(state.spinning) return;
+    buildRestoWheel(); resetRound(); refreshAll();
+  });
 
   document.querySelectorAll(".modes button").forEach(function(btn){
     btn.addEventListener("click", function(){
@@ -497,7 +679,7 @@ details.edit[open] summary::after{content:" ▴"}
   $("add-form").addEventListener("submit", function(ev){
     ev.preventDefault();
     var inp = $("add-input"), v = inp.value.trim();
-    if(!v || state.spinning) return;
+    if(!v || state.spinning || state.mode === "resto") return;
     var m = v.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
     var item = m && m[2] ? {e:m[1], n:m[2]} : {e:"", n:v};
     if(state.mode === "sortir") item.q = item.n;
@@ -506,7 +688,7 @@ details.edit[open] summary::after{content:" ▴"}
   });
 
   $("reset").addEventListener("click", function(){
-    if(state.spinning) return;
+    if(state.spinning || state.mode === "resto") return;
     state.lists[state.mode] = clone(DEFAULTS[state.mode]);
     save(); push(state.mode); resetRound(); refreshAll();
   });
