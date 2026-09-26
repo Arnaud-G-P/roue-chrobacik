@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test liens Uber Eats</title>
+<style>
+  :root{--bg:#F4F1EA; --ink:#141E38; --muted:#4B5878; --card:#fff; --line:rgba(20,30,56,.14); --green:#06C167}
+  @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--bg:#141E38; --ink:#F6EBD3; --muted:#B7BFD6; --card:#1E2A4D; --line:rgba(246,235,211,.14)} }
+  :root[data-theme="dark"]{--bg:#141E38; --ink:#F6EBD3; --muted:#B7BFD6; --card:#1E2A4D; --line:rgba(246,235,211,.14)}
+  body{margin:0; background:var(--bg); color:var(--ink); font:16px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif}
+  main{max-width:520px; margin:0 auto; padding:24px 16px 48px}
+  h1{font-size:1.4rem; margin:0 0 8px}
+  p{color:var(--muted); margin:0 0 16px}
+  ol{list-style:none; padding:0; margin:0; counter-reset:n}
+  li{counter-increment:n; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 10px}
+  li::before{content:"Lien " counter(n); display:block; font-weight:700; margin-bottom:6px}
+  a{display:inline-block; background:var(--green); color:#fff; font-weight:700; text-decoration:none; border-radius:999px; padding:10px 16px}
+  code{display:block; color:var(--muted); font-size:.78rem; word-break:break-all; margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+  <h1>Test des liens Uber Eats 🍕</h1>
+  <p>Appuie sur chaque bouton, puis reviens ici. Note les numéros qui ouvrent l'app Uber Eats <strong>directement sur « pizza »</strong>.</p>
+  <ol id="list"></ol>
+</main>
+<script>
+  var q = "pizza";
+  var links = [
+    "ubereats://search?q=" + q,
+    "ubereats://search?query=" + q,
+    "ubereats://search?searchTerm=" + q,
+    "ubereats://feed?q=" + q,
+    "intent://search?q=" + q + "#Intent;scheme=ubereats;package=com.ubercab.eats;end",
+    "intent://www.ubereats.com/search?q=" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
+    "intent://www.ubereats.com/category/los-angeles-ca/" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
+    "https://www.ubereats.com/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
+    "https://www.ubereats.com/fr/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
+    "https://www.ubereats.com/category/los-angeles-ca/" + q,
+    "https://www.ubereats.com/fr/category/montrouge-idf/" + q
+  ];
+  var ol = document.getElementById("list");
+  links.forEach(function(href){
+    var li = document.createElement("li"), a = document.createElement("a"), c = document.createElement("code");
+    a.href = href; a.textContent = "Ouvrir Uber Eats";
+    c.textContent = href;
+    li.appendChild(a); li.appendChild(c); ol.appendChild(li);
+  });
+</script>
+</body>
+</html>
