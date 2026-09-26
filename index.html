@@ -268,6 +268,7 @@ details.edit[open] summary::after{content:" ▴"}
     </div>
   </details>
   <p class="sync" id="sync" aria-live="polite"></p>
+  <p class="sync"><button type="button" class="reset" id="connect" hidden>🔗 Entrer le code de la roue partagée</button></p>
   <p class="credit">Restaurants : © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a></p>
 </main>
 
@@ -564,7 +565,8 @@ details.edit[open] summary::after{content:" ▴"}
 
   var pulling = false;
   function pull(){
-    if(!CODE){ setSync("Mode local : les changements restent sur ce téléphone."); return; }
+    $("connect").hidden = !!CODE;
+    if(!CODE){ setSync("Pas encore connecté à la roue partagée."); return; }
     if(pulling || state.spinning) return;
     pulling = true;
     rpc("get_wheel", {p_code: CODE}).then(function(data){
@@ -580,8 +582,9 @@ details.edit[open] summary::after{content:" ▴"}
       setSync("Roue partagée ✓");
       pullHistory();
     }).catch(function(e){
-      setSync(e.status === 400 || e.status === 401 || e.status === 403
-        ? "Lien incomplet : demande le lien à Honey."
+      var bad = e.status === 400 || e.status === 401 || e.status === 403;
+      if(bad) $("connect").hidden = false;
+      setSync(bad ? "Code incorrect : vérifie le code de la roue."
         : "Hors ligne : la roue utilise la dernière liste connue.");
     }).then(function(){ pulling = false; });
   }
@@ -823,6 +826,13 @@ details.edit[open] summary::after{content:" ▴"}
   });
 
   $("eat").addEventListener("click", eatCurrent);
+  $("connect").addEventListener("click", function(){
+    var c = window.prompt("Code de la roue partagée :", "");
+    if(!c || !c.trim()) return;
+    CODE = c.trim();
+    try{ localStorage.setItem(CODE_KEY, CODE); }catch(e){}
+    setSync("Connexion…"); pull();
+  });
   try{ state.norepeat = localStorage.getItem(NOREPEAT_KEY) === "1"; }catch(e){}
   $("norepeat").checked = state.norepeat;
   $("norepeat").addEventListener("change", function(){
