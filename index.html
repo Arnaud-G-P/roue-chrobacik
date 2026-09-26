@@ -452,14 +452,18 @@ details.edit[open] summary::after{content:" ▴"}
   var SB_URL = "https://tmqupjtrsqxadrgziqzn.supabase.co";
   var SB_KEY = "sb_publishable_3WrBTW97X-LKOGP_0J6DYQ_5Dmu2Gbn";
   var CODE_KEY = "roue-chrobacik-code";
+  /* Tolère majuscules, espaces en trop et apostrophe typographique (’) des claviers de téléphone. */
+  function normCode(c){
+    return String(c || "").normalize("NFC").toLowerCase().replace(/[\u2018\u2019\u02bc`´]/g, "'").replace(/\s+/g, " ").trim();
+  }
   function readCode(){
     var m = (location.hash || "").match(/[#&]k=([^&]+)/);
     if(m){
-      var c = decodeURIComponent(m[1]);
+      var c = normCode(decodeURIComponent(m[1]));
       try{ localStorage.setItem(CODE_KEY, c); }catch(e){}
       return c;
     }
-    try{ return localStorage.getItem(CODE_KEY) || ""; }catch(e){ return ""; }
+    try{ return normCode(localStorage.getItem(CODE_KEY)); }catch(e){ return ""; }
   }
   var CODE = readCode();
   function setSync(t){ var el = document.getElementById("sync"); if(el) el.textContent = t; }
@@ -566,7 +570,7 @@ details.edit[open] summary::after{content:" ▴"}
   var pulling = false;
   function pull(){
     $("connect").hidden = !!CODE;
-    if(!CODE){ setSync("Pas encore connecté à la roue partagée."); return; }
+    if(!CODE){ setSync("Roue pas encore partagée sur ce téléphone."); return; }
     if(pulling || state.spinning) return;
     pulling = true;
     rpc("get_wheel", {p_code: CODE}).then(function(data){
@@ -829,7 +833,7 @@ details.edit[open] summary::after{content:" ▴"}
   $("connect").addEventListener("click", function(){
     var c = window.prompt("Code de la roue partagée :", "");
     if(!c || !c.trim()) return;
-    CODE = c.trim();
+    CODE = normCode(c);
     try{ localStorage.setItem(CODE_KEY, CODE); }catch(e){}
     setSync("Connexion…"); pull();
   });
