@@ -158,6 +158,9 @@ h1{
   border-bottom:2px solid var(--sun); padding-bottom:1px; margin-bottom:16px;
 }
 .maps[hidden]{display:none}
+.btn.uber{display:block; width:100%; margin:0 0 12px; background:#06C167; border-color:#06C167; color:#fff; text-decoration:none; text-align:center}
+.btn.uber[hidden]{display:none}
+.near small .ue{color:#06A35A; font-weight:700}
 .actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
 .btn{
   font:700 .95rem/1 var(--sans); border-radius:999px; padding:12px 18px; cursor:pointer;
@@ -235,6 +238,7 @@ details.edit[open] summary::after{content:" ▴"}
     <p class="detail" id="r-detail"></p>
     <p class="near-title" id="r-near-title" hidden></p>
     <ul class="near" id="r-near" hidden></ul>
+    <a class="btn uber" id="r-uber" target="_blank" rel="noopener" hidden>🛵 Commander sur Uber Eats</a>
     <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir sur Google Maps</a>
     <div class="cook" id="cook" hidden>
       <p class="near-title" id="cook-title">Qui cuisine ?</p>
@@ -427,6 +431,8 @@ details.edit[open] summary::after{content:" ▴"}
     return "https://www.google.com/maps/search/?api=1&query=" +
       encodeURIComponent(r[0] + ", " + (r[5] ? r[5] + ", " : "") + L.city);
   }
+  /* Uber Eats : recherche (l'app s'ouvre si elle est installée, adresse de livraison du compte). */
+  function uberUrl(q){ return "https://www.ubereats.com/search?q=" + encodeURIComponent(q); }
   function norm(s){ return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
   /* Restaurants du lieu courant qui servent la cuisine choisie, du plus proche au plus loin. */
   function restosFor(it){
@@ -799,19 +805,24 @@ details.edit[open] summary::after{content:" ▴"}
         picks.forEach(function(r){
           var li = document.createElement("li"), a = document.createElement("a"),
               b = document.createElement("strong"), sm = document.createElement("small");
-          a.href = restoMaps(r); a.target = "_blank"; a.rel = "noopener";
+          a.href = uberUrl(r[0]); a.target = "_blank"; a.rel = "noopener";
           b.textContent = restoEmoji(r) + " " + r[0];
-          sm.textContent = restoCuisine(r) + " — " + restoLine(r);
+          sm.textContent = restoCuisine(r) + " — " + restoLine(r) + " · ";
+          var ue = document.createElement("span"); ue.className = "ue"; ue.textContent = "Uber Eats →";
+          sm.appendChild(ue);
           a.appendChild(b); a.appendChild(sm); li.appendChild(a); near.appendChild(li);
         });
         nearTitle.hidden = false; near.hidden = false;
       }
+      var uber = $("r-uber");
+      uber.href = uberUrl(state.lieu === "la" ? (it.q || it.n).replace(/\s+(restaurant|food)$/i, "") : it.n);
+      uber.hidden = false;
       var q = (it.q || it.n) + " near " + L.city;
       maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
-      maps.textContent = picks.length ? "Voir tout sur Google Maps" : "Chercher sur Google Maps";
+      maps.textContent = "ou voir sur Google Maps";
       maps.hidden = false;
     } else {
-      maps.hidden = true;
+      maps.hidden = true; $("r-uber").hidden = true;
     }
     var veto = $("veto");
     if(state.vetosLeft > 0){
