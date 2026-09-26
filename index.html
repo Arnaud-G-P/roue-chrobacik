@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>La roue de Chrobáčik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Nunito:wght@400;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E6ECF7; --bg2:#F4E6C8; --ink:#141E38; --muted:#4B5878;
+  --card:rgba(255,255,255,.72); --line:rgba(20,30,56,.14);
+  --sun:#F2B705; --sun2:#E09E00; --gold:#C9A14E; --velvet:#A4243B;
+  --seed:#4A2E1A; --stars:0;
+  --serif:"Playfair Display", Georgia, "Times New Roman", serif;
+  --hand:"Caveat", "Segoe Print", "Comic Sans MS", cursive;
+  --sans:"Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141E38; --bg2:#1E2A4D; --ink:#F6EBD3; --muted:#B7BFD6;
+    --card:rgba(30,42,77,.72); --line:rgba(246,235,211,.14);
+    --gold:#E8C87A; --stars:1;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141E38; --bg2:#1E2A4D; --ink:#F6EBD3; --muted:#B7BFD6;
+  --card:rgba(30,42,77,.72); --line:rgba(246,235,211,.14);
+  --gold:#E8C87A; --stars:1;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{
+  margin:0; min-height:100vh; color:var(--ink); font-family:var(--sans);
+  background:linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%) fixed;
+  background-color:var(--bg);
+  -webkit-font-smoothing:antialiased;
+}
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:calc(var(--stars) * .9);
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, #F6EBD3 50%, transparent 51%),
+    radial-gradient(1px 1px at 78% 12%, #F6EBD3 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 88% 44%, #E8C87A 50%, transparent 51%),
+    radial-gradient(1px 1px at 22% 62%, #F6EBD3 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 64% 78%, #F6EBD3 50%, transparent 51%),
+    radial-gradient(1px 1px at 8% 88%, #E8C87A 50%, transparent 51%),
+    radial-gradient(1px 1px at 46% 6%, #F6EBD3 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 94% 90%, #F6EBD3 50%, transparent 51%);
+}
+main{position:relative; max-width:520px; margin:0 auto; padding:28px 20px 48px}
+
+header{text-align:center; margin-bottom:18px}
+h1{
+  font-family:var(--serif); font-weight:700; font-size:clamp(1.9rem,7.5vw,2.5rem);
+  line-height:1.1; margin:0 0 6px; letter-spacing:-.01em;
+}
+.tagline{font-family:var(--hand); font-size:1.45rem; color:var(--velvet); margin:0}
+:root[data-theme="dark"] .tagline{color:var(--gold)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .tagline{color:var(--gold)} }
+
+.modes{
+  display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px;
+  background:var(--card); border:1px solid var(--line); border-radius:999px;
+  margin:18px auto 24px; max-width:360px; backdrop-filter:blur(6px);
+}
+.modes button{
+  font:600 .98rem/1 var(--sans); color:var(--ink); background:transparent;
+  border:0; border-radius:999px; padding:12px 10px; cursor:pointer;
+}
+.modes button[aria-pressed="true"]{background:var(--sun); color:#141E38}
+
+.wheel-wrap{position:relative; width:min(92vw,420px); aspect-ratio:1; margin:0 auto}
+#wheel{
+  width:100%; height:100%; display:block;
+  transition:transform 4.4s cubic-bezier(.15,.7,.1,1);
+  will-change:transform;
+}
+.pointer{
+  position:absolute; top:-2px; left:50%; width:34px; height:44px;
+  transform:translateX(-50%); z-index:3; filter:drop-shadow(0 3px 3px rgba(0,0,0,.3));
+}
+.spin-btn{
+  position:absolute; top:50%; left:50%; width:27%; aspect-ratio:1; z-index:2;
+  transform:translate(-50%,-50%); border-radius:50%; cursor:pointer;
+  border:4px solid var(--sun2);
+  background:
+    radial-gradient(circle, rgba(242,183,5,.55) 1.6px, transparent 2px) 0 0/9px 9px,
+    radial-gradient(circle at 40% 35%, #6B4428, var(--seed) 70%);
+  color:#F6EBD3; font:700 clamp(.95rem,4vw,1.15rem)/1 var(--serif);
+  box-shadow:0 4px 14px rgba(0,0,0,.35), inset 0 0 0 2px rgba(0,0,0,.25);
+  transition:transform .15s ease;
+}
+.spin-btn:hover{transform:translate(-50%,-50%) scale(1.04)}
+.spin-btn:active{transform:translate(-50%,-50%) scale(.97)}
+.spin-btn:disabled{cursor:default; opacity:.85}
+
+.result{
+  margin:26px auto 0; max-width:420px; background:var(--card); border:1px solid var(--line);
+  border-radius:22px; padding:22px 20px; text-align:center; backdrop-filter:blur(6px);
+}
+.result[hidden]{display:none}
+.result .emoji{font-size:3rem; line-height:1; display:block; margin-bottom:6px}
+.result h2{font-family:var(--serif); font-size:1.7rem; margin:0 0 4px}
+.result .quip{font-family:var(--hand); font-size:1.35rem; color:var(--velvet); margin:0 0 12px}
+:root[data-theme="dark"] .result .quip{color:var(--gold)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .result .quip{color:var(--gold)} }
+.result .detail{color:var(--muted); margin:0 0 16px; line-height:1.5}
+.maps{
+  display:inline-block; font-weight:700; color:var(--ink); text-decoration:none;
+  border-bottom:2px solid var(--sun); padding-bottom:1px; margin-bottom:16px;
+}
+.maps[hidden]{display:none}
+.actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
+.btn{
+  font:700 .95rem/1 var(--sans); border-radius:999px; padding:12px 18px; cursor:pointer;
+  border:1.5px solid var(--line); background:transparent; color:var(--ink);
+}
+.btn.primary{background:var(--velvet); border-color:var(--velvet); color:#FCEFD6}
+.btn:disabled{opacity:.45; cursor:not-allowed}
+
+details.edit{margin:34px auto 0; max-width:420px}
+details.edit summary{
+  cursor:pointer; text-align:center; color:var(--muted); font-weight:600; list-style:none;
+}
+details.edit summary::-webkit-details-marker{display:none}
+details.edit summary::after{content:" ▾"}
+details.edit[open] summary::after{content:" ▴"}
+.edit-body{margin-top:14px; background:var(--card); border:1px solid var(--line); border-radius:18px; padding:16px}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; padding:0; list-style:none}
+.chips li{
+  display:flex; align-items:center; gap:6px; padding:6px 6px 6px 12px;
+  border:1px solid var(--line); border-radius:999px; font-size:.92rem;
+}
+.chips button{
+  border:0; background:transparent; color:var(--muted); font-size:1rem; cursor:pointer;
+  width:26px; height:26px; border-radius:50%;
+}
+.add-row{display:flex; gap:8px}
+.add-row input{
+  flex:1; min-width:0; font:400 1rem var(--sans); color:var(--ink);
+  background:transparent; border:1.5px solid var(--line); border-radius:12px; padding:11px 12px;
+}
+.hint{color:var(--muted); font-size:.85rem; margin:10px 0 0}
+.sync{text-align:center; color:var(--muted); font-size:.85rem; margin:14px 0 0; min-height:1.2em}
+.reset{margin-top:12px; background:none; border:0; color:var(--muted); text-decoration:underline; cursor:pointer; font:600 .85rem var(--sans)}
+
+:focus-visible{outline:3px solid var(--sun); outline-offset:3px}
+.sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0)}
+
+@media (prefers-reduced-motion: reduce){
+  #wheel{transition-duration:.7s}
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Chrobáčik, on mange quoi ?</h1>
+    <p class="tagline">Tu ne choisis pas. La roue choisit.</p>
+  </header>
+
+  <div class="modes" role="group" aria-label="Où manger">
+    <button type="button" data-mode="sortir" aria-pressed="true">On sort 🌴</button>
+    <button type="button" data-mode="maison" aria-pressed="false">À la maison 🏠</button>
+  </div>
+
+  <div class="wheel-wrap">
+    <svg class="pointer" viewBox="0 0 34 44" aria-hidden="true">
+      <path d="M17 42 C 6 26, 2 18, 2 13 A 15 13 0 0 1 32 13 C 32 18, 28 26, 17 42 Z" fill="#A4243B"/>
+      <circle cx="17" cy="13" r="5" fill="#E8C87A"/>
+    </svg>
+    <svg id="wheel" viewBox="0 0 440 440" role="img" aria-label="Roue des repas"></svg>
+    <button type="button" class="spin-btn" id="spin">Tourner</button>
+  </div>
+
+  <section class="result" id="result" hidden aria-live="polite">
+    <span class="emoji" id="r-emoji"></span>
+    <h2 id="r-name"></h2>
+    <p class="quip" id="r-quip"></p>
+    <p class="detail" id="r-detail"></p>
+    <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir les adresses près de UCLA</a>
+    <div class="actions">
+      <button type="button" class="btn" id="veto">Veto</button>
+      <button type="button" class="btn primary" id="again">Relancer</button>
+    </div>
+  </section>
+
+  <details class="edit">
+    <summary>Modifier la roue</summary>
+    <div class="edit-body">
+      <ul class="chips" id="chips"></ul>
+      <form class="add-row" id="add-form">
+        <label class="sr" for="add-input">Nouvelle option</label>
+        <input id="add-input" type="text" maxlength="22" placeholder="🍤 Crevettes" autocomplete="off">
+        <button type="submit" class="btn primary">Ajouter</button>
+      </form>
+      <p class="hint">Commence par un emoji si tu veux. Les changements sont partagés entre Honey et Chrobáčik.</p>
+      <button type="button" class="reset" id="reset">Revenir à la liste d'origine</button>
+    </div>
+  </details>
+  <p class="sync" id="sync" aria-live="polite"></p>
+</main>
+
+<script>
+(function(){
+  var DEFAULTS = {
+    sortir: [
+      {e:"🌮", n:"Tacos", q:"tacos", d:"Petits tacos, sauce verte, et tu en reprends."},
+      {e:"🍕", n:"Pizza", q:"pizza", d:"Une part. Puis une deuxième. On connaît."},
+      {e:"🍣", n:"Sushi", q:"sushi", d:"Avec les doigts, c'est autorisé."},
+      {e:"🍜", n:"Ramen", q:"ramen", d:"Bouillon chaud, pas de chemise blanche."},
+      {e:"🍔", n:"Burger", q:"burger", d:"Frites obligatoires. C'est la règle."},
+      {e:"🥗", n:"Poke", q:"poke bowl", d:"Version healthy, pour la bonne conscience."},
+      {e:"🍛", n:"Thaï", q:"thai food", d:"Pad thaï, et tu voles une bouchée à quelqu'un."},
+      {e:"🥩", n:"Korean BBQ", q:"korean bbq", d:"Tu grilles toi-même. Tu vas adorer râler dessus."},
+      {e:"🧆", n:"Falafel", q:"mediterranean food", d:"Houmous, pita, et le reste du monde attendra."},
+      {e:"🥞", n:"Brunch", q:"brunch", d:"Peu importe l'heure. Tu es en décalage de toute façon."},
+      {e:"🍢", n:"Persan", q:"persian restaurant", d:"Westwood, c'est Tehrangeles. Koobideh obligatoire."},
+      {e:"🥟", n:"Dim sum", q:"dim sum", d:"Tu commandes tout le chariot. On le sait."},
+      {e:"🥘", n:"Indien", q:"indian food", d:"Naan à l'ail, et tu sauces jusqu'au bout."},
+      {e:"🥢", n:"Phở", q:"pho", d:"Un grand bol, et tu ne parles plus pendant dix minutes. Record."},
+      {e:"🍝", n:"Italien", q:"italian restaurant", d:"Pâtes fraîches, et tu penses à moi."},
+      {e:"🌯", n:"Burrito", q:"burrito", d:"Taille Californie. Tu ne finiras pas."},
+      {e:"🍗", n:"Poulet frit", q:"fried chicken", d:"Croustillant, avec les doigts, sans remords."},
+      {e:"🫕", n:"Hot pot", q:"hot pot", d:"Tu mets tout dans le bouillon et tu râles que c'est chaud."}
+    ],
+    maison: [
+      {e:"🧀", n:"Mac & cheese", d:"Pâtes, cheddar, lait, beurre. Quinze minutes."},
+      {e:"🌮", n:"Tacos maison", d:"Tortillas, poulet, avocat, citron vert."},
+      {e:"🍝", n:"Pâtes à l'ail", d:"Ail, huile d'olive, parmesan. Le classique qui sauve."},
+      {e:"🍳", n:"Omelette", d:"Œufs, fromage, et ce qui traîne dans le frigo."},
+      {e:"🍚", n:"Riz sauté", d:"Riz d'hier, un œuf, sauce soja, légumes."},
+      {e:"🫓", n:"Quesadilla", d:"Tortilla, fromage, poêle. Trois minutes chrono."},
+      {e:"🍲", n:"Soupe", d:"Un bouillon, des légumes, et un plaid."},
+      {e:"🥪", n:"Grilled cheese", d:"Pain de mie, beurre, fromage qui file."},
+      {e:"🥞", n:"Pancakes", d:"Pour le dîner. Personne ne juge."},
+      {e:"🥗", n:"Salade bowl", d:"Du vert, une protéine, une sauce, un bol."},
+      {e:"🍛", n:"Curry", d:"Lait de coco, pâte de curry, poulet, riz."},
+      {e:"🌶️", n:"Chili", d:"Haricots, bœuf haché, épices. Encore meilleur le lendemain."},
+      {e:"🍜", n:"Nouilles sautées", d:"Nouilles, sauce soja, légumes, dix minutes."},
+      {e:"🍕", n:"Pizza maison", d:"Pâte toute prête, sauce tomate, ce que tu aimes dessus."},
+      {e:"🍔", n:"Burger maison", d:"Steak, cheddar, pain brioché. Tu es la cheffe."},
+      {e:"🥔", n:"Gratin", d:"Pommes de terre, crème, fromage, four. Réconfort total."},
+      {e:"🌯", n:"Wraps", d:"Tortilla, poulet, crudités, sauce. On roule."},
+      {e:"🍅", n:"Shakshuka", d:"Tomates, poivrons, œufs pochés dedans, pain pour saucer."}
+    ]
+  };
+  var QUIPS = [
+    "La roue a parlé. Pas de négociation.",
+    "Ronchon approuve. Enfin, il ne proteste pas.",
+    "Honey valide ce choix.",
+    "Excellent choix. Que tu n'as pas fait."
+  ];
+  var KEY = "roue-chrobacik-v2";
+  var PAL = [
+    {f:"#F2B705", t:"#141E38"},
+    {f:"#A4243B", t:"#FCEFD6"},
+    {f:"#E8C87A", t:"#141E38"},
+    {f:"#2F4A86", t:"#FCEFD6"},
+    {f:"#5E7B3A", t:"#FCEFD6"}
+  ];
+
+  function clone(o){ return JSON.parse(JSON.stringify(o)); }
+  function load(){
+    try{
+      var raw = localStorage.getItem(KEY);
+      if(!raw) return clone(DEFAULTS);
+      var p = JSON.parse(raw);
+      if(p && Array.isArray(p.sortir) && Array.isArray(p.maison)) return p;
+    }catch(e){}
+    return clone(DEFAULTS);
+  }
+  function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state.lists)); }catch(e){} }
+
+  /* ---------- Synchronisation Supabase ---------- */
+  var SB_URL = "https://tmqupjtrsqxadrgziqzn.supabase.co";
+  var SB_KEY = "sb_publishable_3WrBTW97X-LKOGP_0J6DYQ_5Dmu2Gbn";
+  var CODE_KEY = "roue-chrobacik-code";
+  function readCode(){
+    var m = (location.hash || "").match(/[#&]k=([^&]+)/);
+    if(m){
+      var c = decodeURIComponent(m[1]);
+      try{ localStorage.setItem(CODE_KEY, c); }catch(e){}
+      return c;
+    }
+    try{ return localStorage.getItem(CODE_KEY) || ""; }catch(e){ return ""; }
+  }
+  var CODE = readCode();
+  function setSync(t){ var el = document.getElementById("sync"); if(el) el.textContent = t; }
+  function rpc(fn, body){
+    return fetch(SB_URL + "/rest/v1/rpc/" + fn, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "apikey":SB_KEY },
+      body:JSON.stringify(body)
+    }).then(function(r){
+      if(!r.ok) return r.text().then(function(t){ var e = new Error(t || r.status); e.status = r.status; throw e; });
+      return r.json();
+    });
+  }
+  function cleanItems(arr){
+    if(!Array.isArray(arr)) return null;
+    var out = arr.filter(function(it){ return it && typeof it.n === "string" && it.n.trim(); })
+      .slice(0,60).map(function(it){
+        var o = {e: typeof it.e === "string" ? it.e.slice(0,8) : "", n: it.n.slice(0,22)};
+        if(typeof it.q === "string") o.q = it.q.slice(0,60);
+        if(typeof it.d === "string") o.d = it.d.slice(0,140);
+        return o;
+      });
+    return out.length >= 2 ? out : null;
+  }
+  var pulling = false;
+  function pull(){
+    if(!CODE){ setSync("Mode local : les changements restent sur ce téléphone."); return; }
+    if(pulling || state.spinning) return;
+    pulling = true;
+    rpc("get_wheel", {p_code: CODE}).then(function(data){
+      var changed = false;
+      ["sortir","maison"].forEach(function(m){
+        var items = data && data[m] && cleanItems(data[m].items);
+        if(items && JSON.stringify(items) !== JSON.stringify(state.lists[m])){
+          state.lists[m] = items; changed = true;
+        }
+      });
+      save();
+      if(changed && !state.spinning){ resetRound(); refreshAll(); }
+      setSync("Roue partagée ✓");
+    }).catch(function(e){
+      setSync(e.status === 400 || e.status === 401 || e.status === 403
+        ? "Lien incomplet : demande le lien à Honey."
+        : "Hors ligne : la roue utilise la dernière liste connue.");
+    }).then(function(){ pulling = false; });
+  }
+  function push(mode){
+    if(!CODE){ return; }
+    setSync("Enregistrement…");
+    rpc("set_wheel", {p_code: CODE, p_mode: mode, p_items: state.lists[mode]})
+      .then(function(){ setSync("Roue partagée ✓"); })
+      .catch(function(){ setSync("Pas enregistré en ligne. Réessaie dans un instant."); });
+  }
+
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var state = {
+    mode:"sortir", lists:load(), rotation:0, spinning:false,
+    vetoed:{}, vetosLeft:2, relances:0, current:null
+  };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var wheel = $("wheel"), spinBtn = $("spin"), result = $("result");
+
+  function list(){ return state.lists[state.mode]; }
+  function label(it){
+    var s = (it.e ? it.e + " " : "") + it.n;
+    return s.length > 16 ? s.slice(0,15) + "…" : s;
+  }
+  function pt(a, r){
+    var rad = a * Math.PI / 180;
+    return [220 + r * Math.sin(rad), 220 - r * Math.cos(rad)];
+  }
+
+  function drawWheel(){
+    var items = list(), n = items.length, seg = 360 / n, R = 180, out = "";
+    for(var k=0;k<28;k++){
+      var a = k * (360/28);
+      out += '<ellipse cx="220" cy="22" rx="11" ry="26" fill="' + (k%2 ? "#E09E00" : "#F2B705") +
+             '" transform="rotate(' + a + ' 220 220)"/>';
+    }
+    out += '<circle cx="220" cy="220" r="' + (R+4) + '" fill="#4A2E1A"/>';
+    var fs = n <= 8 ? 16 : n <= 12 ? 14 : n <= 18 ? 12 : 11;
+    for(var i=0;i<n;i++){
+      var c = PAL[i % PAL.length];
+      if(i === n-1 && n % PAL.length === 1) c = PAL[2];
+      var a0 = i*seg, a1 = a0+seg, p0 = pt(a0,R), p1 = pt(a1,R), mid = a0 + seg/2;
+      var off = !!state.vetoed[i];
+      out += '<path d="M220 220 L' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) +
+             ' A' + R + ' ' + R + ' 0 ' + (seg>180?1:0) + ' 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) +
+             ' Z" fill="' + c.f + '" stroke="#141E38" stroke-width="1.5"' + (off ? ' opacity=".28"' : '') + '/>';
+      out += '<text x="' + (220 + R - 14) + '" y="' + (220 + fs*0.35) + '" text-anchor="end" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="' + fs + '" fill="' + c.t + '"' +
+             (off ? ' opacity=".4" text-decoration="line-through"' : '') +
+             ' transform="rotate(' + (mid-90) + ' 220 220)">' + esc(label(items[i])) + '</text>';
+    }
+    wheel.innerHTML = out;
+    wheel.setAttribute("aria-label", "Roue des repas : " + items.map(function(it){return it.n;}).join(", "));
+  }
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  function pool(){
+    var p = [];
+    for(var i=0;i<list().length;i++) if(!state.vetoed[i]) p.push(i);
+    return p;
+  }
+
+  function spin(){
+    if(state.spinning) return;
+    var p = pool();
+    if(list().length < 2 || p.length < 1) return;
+    var win = p[Math.floor(Math.random() * p.length)];
+    var n = list().length, seg = 360 / n;
+    var jitter = (Math.random() - .5) * seg * .6;
+    var desired = (((360 - (win + .5) * seg + jitter) % 360) + 360) % 360;
+    var cur = ((state.rotation % 360) + 360) % 360;
+    var delta = ((desired - cur) + 360) % 360;
+    state.rotation += (reduce ? 2 : 6) * 360 + delta;
+    state.spinning = true;
+    spinBtn.disabled = true; $("veto").disabled = true; $("again").disabled = true;
+    wheel.style.transform = "rotate(" + state.rotation + "deg)";
+    var done = false;
+    function finish(){
+      if(done) return; done = true;
+      state.spinning = false; state.current = win;
+      spinBtn.disabled = false;
+      showResult();
+      try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
+    }
+    wheel.addEventListener("transitionend", finish, {once:true});
+    setTimeout(finish, (reduce ? 700 : 4400) + 150);
+  }
+
+  function showResult(){
+    var it = list()[state.current];
+    $("r-emoji").textContent = it.e || "🌻";
+    $("r-name").textContent = it.n;
+    var quip;
+    if(state.relances >= 5) quip = "Tu sais que c'est une roue, pas un conseiller ?";
+    else if(state.relances >= 3) quip = "Encore une relance. Ronchon te regarde.";
+    else quip = QUIPS[Math.floor(Math.random() * QUIPS.length)];
+    $("r-quip").textContent = quip;
+    $("r-detail").textContent = it.d || "Idée à toi. Improvise.";
+    var maps = $("r-maps");
+    if(state.mode === "sortir"){
+      var q = (it.q || it.n) + " near UCLA Westwood Los Angeles";
+      maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+      maps.hidden = false;
+    } else {
+      maps.hidden = true;
+    }
+    var veto = $("veto");
+    if(state.vetosLeft > 0){
+      veto.textContent = "Veto (" + state.vetosLeft + " restant" + (state.vetosLeft > 1 ? "s" : "") + ")";
+      veto.disabled = pool().length <= 1;
+    } else {
+      veto.textContent = "Plus de veto";
+      veto.disabled = true;
+    }
+    $("again").disabled = false;
+    result.hidden = false;
+  }
+
+  function resetRound(){
+    state.vetoed = {}; state.vetosLeft = 2; state.relances = 0; state.current = null;
+    result.hidden = true;
+  }
+
+  function drawChips(){
+    var ul = $("chips"); ul.innerHTML = "";
+    list().forEach(function(it, i){
+      var li = document.createElement("li");
+      var span = document.createElement("span");
+      span.textContent = (it.e ? it.e + " " : "") + it.n;
+      var b = document.createElement("button");
+      b.type = "button"; b.textContent = "✕";
+      b.setAttribute("aria-label", "Retirer " + it.n);
+      b.disabled = list().length <= 2;
+      b.addEventListener("click", function(){
+        if(state.spinning || list().length <= 2) return;
+        list().splice(i, 1); save(); push(state.mode); resetRound(); drawWheel(); drawChips();
+      });
+      li.appendChild(span); li.appendChild(b); ul.appendChild(li);
+    });
+  }
+
+  function refreshAll(){ drawWheel(); drawChips(); }
+
+  document.querySelectorAll(".modes button").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      if(state.spinning) return;
+      state.mode = btn.dataset.mode;
+      document.querySelectorAll(".modes button").forEach(function(b){
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      resetRound(); refreshAll(); pull();
+    });
+  });
+
+  spinBtn.addEventListener("click", spin);
+  $("again").addEventListener("click", function(){ state.relances++; spin(); });
+  $("veto").addEventListener("click", function(){
+    if(state.vetosLeft <= 0 || state.current === null) return;
+    state.vetoed[state.current] = true; state.vetosLeft--;
+    drawWheel(); spin();
+  });
+
+  $("add-form").addEventListener("submit", function(ev){
+    ev.preventDefault();
+    var inp = $("add-input"), v = inp.value.trim();
+    if(!v || state.spinning) return;
+    var m = v.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
+    var item = m && m[2] ? {e:m[1], n:m[2]} : {e:"", n:v};
+    if(state.mode === "sortir") item.q = item.n;
+    list().push(item); save(); push(state.mode); inp.value = "";
+    resetRound(); refreshAll();
+  });
+
+  $("reset").addEventListener("click", function(){
+    if(state.spinning) return;
+    state.lists[state.mode] = clone(DEFAULTS[state.mode]);
+    save(); push(state.mode); resetRound(); refreshAll();
+  });
+
+  refreshAll();
+  pull();
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden) pull(); });
+  if(location.hash){ try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){} }
+})();
+</script>
+</body>
+</html>
