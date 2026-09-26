@@ -444,17 +444,28 @@ details.edit[open] summary::after{content:" ▴"}
     var el = $("toast"); el.textContent = t; el.hidden = false;
     clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.hidden = true; }, 7000);
   }
-  function copyText(t){
-    try{ if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).catch(function(){}); return; } }catch(e){}
+  function copyText(t, done){
+    done = done || function(){};
+    function legacy(){
+      try{
+        var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", "");
+        ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+        ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+      }catch(e){}
+      done();
+    }
     try{
-      var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", "");
-      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
-      ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(t).then(done, legacy); return; }
     }catch(e){}
+    legacy();
   }
   /* Android (Brave, Chrome, Samsung) : un lien « intent » force l'ouverture dans l'app Uber Eats,
      avec le site web en secours si l'app n'est pas installée. Ailleurs : lien web classique. */
   var ANDROID = /Android/i.test(navigator.userAgent || "");
+  /* Lance l'app Uber Eats sur son accueil (Android), sinon la fiche Play Store. */
+  var UE_APP = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;" +
+    "package=com.ubercab.eats;S.browser_fallback_url=" +
+    encodeURIComponent("https://play.google.com/store/apps/details?id=com.ubercab.eats") + ";end";
   function ueHref(url){
     if(!ANDROID) return url;
     return "intent://" + url.replace(/^https?:\/\//, "") +
@@ -838,12 +849,21 @@ details.edit[open] summary::after{content:" ▴"}
       };
       cat.hidden = !catUrl;
       if(catUrl){
-        cat.href = ueHref(catUrl); cat.textContent = "Tout voir sur Uber Eats ↗";
-        if(ANDROID){ cat.removeAttribute("target"); }
+        /* L'app ne sait pas ouvrir une catégorie : on copie la cuisine puis on lance l'app (Android)
+           ou le site catégorie (ailleurs). Il reste à coller dans la recherche d'Uber Eats. */
         var term = state.lieu === "la" && it.q ? it.q.replace(/\s+(restaurant|food)$/i, "") : it.n;
-        cat.onclick = function(){
-          copyText(term);
-          toast("« " + term + " » copié 📋 Dans Uber Eats, colle-le dans la recherche.");
+        cat.href = ANDROID ? UE_APP : catUrl;
+        cat.textContent = "Tout voir sur Uber Eats ↗";
+        if(ANDROID){ cat.removeAttribute("target"); }
+        cat.onclick = function(ev){
+          var href = cat.href;
+          toast("« " + term + " » copié 📋 Dans Uber Eats : touche la recherche puis Coller.");
+          if(!ANDROID){ copyText(term); return; }
+          ev.preventDefault();
+          var go = false;
+          function open(){ if(!go){ go = true; location.href = href; } }
+          copyText(term, open);
+          setTimeout(open, 600);
         };
       }
       $("ue-more").hidden = all.hidden && cat.hidden;
