@@ -73,17 +73,15 @@ h1{
 .lieux button[aria-pressed="true"]{color:var(--ink); border-color:var(--velvet); background:var(--card)}
 .home{color:var(--muted); font-size:.85rem; margin:8px 0 0}
 .modes{
-  display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; padding:5px;
+  display:grid; grid-template-columns:1fr 1fr; gap:6px; padding:5px;
   background:var(--card); border:1px solid var(--line); border-radius:999px;
-  margin:16px auto 24px; max-width:400px; backdrop-filter:blur(6px);
+  margin:16px auto 24px; max-width:340px; backdrop-filter:blur(6px);
 }
 .modes button{
   font:600 .95rem/1 var(--sans); color:var(--ink); background:transparent;
   border:0; border-radius:999px; padding:12px 6px; cursor:pointer; white-space:nowrap;
 }
 .modes button[aria-pressed="true"]{background:var(--sun); color:#141E38}
-.shuffle{display:block; margin:14px auto 0}
-.shuffle[hidden]{display:none}
 .near{list-style:none; margin:0 0 14px; padding:0; text-align:left}
 .near[hidden]{display:none}
 .near-title{font-weight:700; font-size:.9rem; margin:0 0 8px; text-align:center}
@@ -92,6 +90,14 @@ h1{
 .near a{display:block; padding:9px 4px; color:var(--ink); text-decoration:none}
 .near a:hover strong{text-decoration:underline}
 .near small{display:block; color:var(--muted); font-size:.82rem; margin-top:2px}
+.cook{margin:0 0 16px}
+.cook[hidden]{display:none}
+.cook-wrap{position:relative; width:150px; height:150px; margin:4px auto 10px}
+#cook-svg{width:100%; height:100%; display:block; pointer-events:none; transition:transform 2.6s cubic-bezier(.15,.7,.1,1)}
+.cook-wrap .pointer{width:22px; height:28px; top:-6px}
+.cook-res{font-family:var(--hand); font-size:1.4rem; color:var(--velvet); margin:6px 0 0; min-height:1.4em}
+:root[data-theme="dark"] .cook-res{color:var(--gold)}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]) .cook-res{color:var(--gold)} }
 .btn.eat{display:block; width:100%; margin:0 0 10px; background:var(--sun); border-color:var(--sun2); color:#141E38}
 .btn.eat:disabled{opacity:.7; cursor:default}
 .norepeat{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:.9rem; margin:-10px 0 18px; cursor:pointer}
@@ -208,7 +214,6 @@ details.edit[open] summary::after{content:" ▴"}
 
   <div class="modes" role="group" aria-label="Où manger">
     <button type="button" data-mode="sortir" aria-pressed="true">On sort 🍽️</button>
-    <button type="button" data-mode="resto" aria-pressed="false">Resto 🎲</button>
     <button type="button" data-mode="maison" aria-pressed="false">Maison 🏠</button>
   </div>
 
@@ -222,7 +227,6 @@ details.edit[open] summary::after{content:" ▴"}
     <svg id="wheel" viewBox="0 0 440 440" role="img" aria-label="Roue des repas"></svg>
     <button type="button" class="spin-btn" id="spin">Tourner</button>
   </div>
-  <button type="button" class="btn shuffle" id="shuffle" hidden>🔀 Autres restos</button>
 
   <section class="result" id="result" hidden aria-live="polite">
     <span class="emoji" id="r-emoji"></span>
@@ -232,6 +236,18 @@ details.edit[open] summary::after{content:" ▴"}
     <p class="near-title" id="r-near-title" hidden></p>
     <ul class="near" id="r-near" hidden></ul>
     <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir sur Google Maps</a>
+    <div class="cook" id="cook" hidden>
+      <p class="near-title">Qui cuisine ?</p>
+      <div class="cook-wrap">
+        <svg class="pointer" viewBox="0 0 34 44" aria-hidden="true">
+          <path d="M17 42 C 6 26, 2 18, 2 13 A 15 13 0 0 1 32 13 C 32 18, 28 26, 17 42 Z" fill="#141E38"/>
+          <circle cx="17" cy="13" r="5" fill="#E8C87A"/>
+        </svg>
+        <svg id="cook-svg" viewBox="0 0 200 200" role="img" aria-label="Petite roue : Honey ou Chrobáčik"></svg>
+      </div>
+      <button type="button" class="btn" id="cook-spin">🍳 Tourner la petite roue</button>
+      <p class="cook-res" id="cook-res" aria-live="polite"></p>
+    </div>
     <button type="button" class="btn eat" id="eat">✅ On mange ça !</button>
     <div class="actions">
       <button type="button" class="btn" id="veto">Veto</button>
@@ -263,6 +279,8 @@ details.edit[open] summary::after{content:" ▴"}
       </div>
       <h3>Les plus mangés</h3>
       <ol id="top"></ol>
+      <h3>Aux fourneaux</h3>
+      <ol id="cooks"></ol>
       <h3>Derniers repas</h3>
       <ul id="recent"></ul>
     </div>
@@ -423,18 +441,6 @@ details.edit[open] summary::after{content:" ▴"}
     while(p.length && out.length < k) out.push(p.splice(Math.floor(Math.random() * p.length), 1)[0]);
     return out.sort(function(a,b){ return a[4] - b[4]; });
   }
-  var WHEEL_RESTOS = 12;
-  function buildRestoWheel(){
-    var pool = (lieu().list || []).slice(), seen = {}, out = [];
-    while(pool.length && out.length < WHEEL_RESTOS){
-      var r = pool.splice(Math.floor(Math.random() * pool.length), 1)[0];
-      var key = norm(r[0]);
-      if(seen[key]) continue;
-      seen[key] = true;
-      out.push({e: restoEmoji(r), n: r[0], d: restoCuisine(r) + " — " + restoLine(r), r: r});
-    }
-    state.restoWheel = out;
-  }
 
   function clone(o){ return JSON.parse(JSON.stringify(o)); }
   function load(){
@@ -512,13 +518,14 @@ details.edit[open] summary::after{content:" ▴"}
   function eatCurrent(){
     if(state.current === null) return;
     var it = list()[state.current], btn = $("eat");
-    var entry = {mode: state.mode, lieu: state.lieu, name: it.n, emoji: it.e || "", resto: it.r ? it.r[0] : null};
+    var entry = {mode: state.mode, lieu: state.lieu, name: it.n, emoji: it.e || "", resto: null,
+      who: state.mode === "maison" ? state.cook : null};
     btn.disabled = true; btn.textContent = "Noté ✓ Bon appétit !";
     if(!CODE){
       entry.id = "local-" + Date.now(); entry.eaten_at = new Date().toISOString();
       state.history.unshift(entry); saveHistory(); drawStats(); return;
     }
-    rpc("log_meal", {p_code: CODE, p_mode: entry.mode, p_lieu: entry.lieu, p_name: entry.name, p_emoji: entry.emoji, p_resto: entry.resto})
+    rpc("log_meal", {p_code: CODE, p_mode: entry.mode, p_lieu: entry.lieu, p_name: entry.name, p_emoji: entry.emoji, p_resto: entry.resto, p_who: entry.who})
       .then(function(row){ state.history.unshift(row); saveHistory(); drawStats(); setSync("Repas enregistré ✓"); })
       .catch(function(){ btn.disabled = false; btn.textContent = "✅ On mange ça !"; setSync("Pas enregistré. Réessaie dans un instant."); });
   }
@@ -552,13 +559,24 @@ details.edit[open] summary::after{content:" ▴"}
       li.appendChild(name); li.appendChild(c); top.appendChild(li);
     });
     if(!order.length) top.innerHTML = '<li class="empty">Rien encore. Tourne la roue puis « On mange ça ».</li>';
+    var cooks = {}, cookOrder = [];
+    rows.forEach(function(h){ if(h.who){ if(!cooks[h.who]){ cooks[h.who] = 0; cookOrder.push(h.who); } cooks[h.who]++; } });
+    cookOrder.sort(function(a,b){ return cooks[b] - cooks[a]; });
+    var ck = $("cooks"); ck.innerHTML = "";
+    cookOrder.forEach(function(w){
+      var li = document.createElement("li"), name = document.createElement("span"), c = document.createElement("span");
+      name.className = "grow"; name.textContent = "👩‍🍳 " + w;
+      c.className = "count"; c.textContent = "×" + cooks[w];
+      li.appendChild(name); li.appendChild(c); ck.appendChild(li);
+    });
+    if(!cookOrder.length) ck.innerHTML = '<li class="empty">Personne n\'a encore cuisiné. Petite roue en mode Maison.</li>';
     var rec = $("recent"); rec.innerHTML = "";
     rows.slice(0, 15).forEach(function(h){
       var li = document.createElement("li"), txt = document.createElement("span"), sm = document.createElement("small"), del = document.createElement("button");
       txt.className = "grow"; txt.textContent = (h.emoji ? h.emoji + " " : "") + h.name + " ";
       var d = new Date(h.eaten_at);
       sm.textContent = (DAY_FMT ? DAY_FMT.format(d) : d.toLocaleDateString()) + " · " + (RESTOS[h.lieu] ? RESTOS[h.lieu].label : "") +
-        (h.mode === "maison" ? " · maison" : "");
+        (h.mode === "maison" ? " · maison" + (h.who ? " · 🍳 " + h.who : "") : "");
       txt.appendChild(document.createElement("br")); txt.appendChild(sm);
       del.type = "button"; del.textContent = "✕"; del.setAttribute("aria-label", "Supprimer " + h.name);
       del.addEventListener("click", function(){ deleteMeal(h); });
@@ -603,14 +621,14 @@ details.edit[open] summary::after{content:" ▴"}
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var state = {
     history:loadHistory(), statsDays:30, norepeat:false,
-    mode:"sortir", lists:load(), rotation:0, spinning:false, lieu:loadLieu(), restoWheel:[],
+    mode:"sortir", lists:load(), rotation:0, spinning:false, lieu:loadLieu(), cook:null,
     vetoed:{}, vetosLeft:2, relances:0, current:null
   };
 
   var $ = function(id){ return document.getElementById(id); };
   var wheel = $("wheel"), spinBtn = $("spin"), result = $("result");
 
-  function list(){ return state.mode === "resto" ? state.restoWheel : state.lists[state.mode]; }
+  function list(){ return state.lists[state.mode]; }
   function label(it){
     var s = (it.e ? it.e + " " : "") + it.n;
     return s.length > 16 ? s.slice(0,15) + "…" : s;
@@ -677,13 +695,13 @@ details.edit[open] summary::after{content:" ▴"}
     var delta = ((desired - cur) + 360) % 360;
     state.rotation += (reduce ? 2 : 6) * 360 + delta;
     state.spinning = true;
-    spinBtn.disabled = true; $("veto").disabled = true; $("again").disabled = true; $("shuffle").disabled = true;
+    spinBtn.disabled = true; $("veto").disabled = true; $("again").disabled = true; $("cook-spin").disabled = true;
     wheel.style.transform = "rotate(" + state.rotation + "deg)";
     var done = false;
     function finish(){
       if(done) return; done = true;
       state.spinning = false; state.current = win;
-      spinBtn.disabled = false; $("shuffle").disabled = false;
+      spinBtn.disabled = false; $("cook-spin").disabled = false;
       showResult();
       try{ if(navigator.vibrate) navigator.vibrate(30); }catch(e){}
     }
@@ -703,11 +721,7 @@ details.edit[open] summary::after{content:" ▴"}
     $("r-detail").textContent = it.d || "Idée à toi. Improvise.";
     var maps = $("r-maps"), near = $("r-near"), nearTitle = $("r-near-title"), L = lieu();
     near.innerHTML = ""; near.hidden = true; nearTitle.hidden = true;
-    if(state.mode === "resto" && it.r){
-      maps.href = restoMaps(it.r);
-      maps.textContent = "Y aller (Google Maps)";
-      maps.hidden = false;
-    } else if(state.mode === "sortir"){
+    if(state.mode === "sortir"){
       var found = restosFor(it), picks = pickNear(found, 3);
       if(picks.length){
         nearTitle.textContent = found.length + " resto" + (found.length > 1 ? "s" : "") + " dans le coin";
@@ -738,6 +752,7 @@ details.edit[open] summary::after{content:" ▴"}
     }
     $("again").disabled = false;
     var eat = $("eat"); eat.disabled = false; eat.textContent = "✅ On mange ça !";
+    resetCook(); $("cook").hidden = state.mode !== "maison";
     result.hidden = false;
   }
 
@@ -764,14 +779,70 @@ details.edit[open] summary::after{content:" ▴"}
     });
   }
 
+  /* ---------- Petite roue « Qui cuisine ? » (mode Maison) ---------- */
+  var COOKS = [{n:"Honey", f:"#A4243B", t:"#FCEFD6"}, {n:"Chrobáčik", f:"#F2B705", t:"#141E38"}];
+  var cookRot = 0, cookSpinning = false;
+  function drawCookWheel(){
+    var out = '<circle cx="100" cy="100" r="98" fill="#4A2E1A"/>';
+    out += '<path d="M100 100 L100 6 A94 94 0 0 1 100 194 Z" fill="' + COOKS[0].f + '"/>';
+    out += '<path d="M100 100 L100 194 A94 94 0 0 1 100 6 Z" fill="' + COOKS[1].f + '"/>';
+    out += '<text x="148" y="105" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="17" fill="' + COOKS[0].t + '">' + esc(COOKS[0].n) + '</text>';
+    out += '<text x="56" y="105" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="13" fill="' + COOKS[1].t + '">' + esc(COOKS[1].n) + '</text>';
+    out += '<circle cx="100" cy="100" r="14" fill="#4A2E1A" stroke="#E09E00" stroke-width="3"/>';
+    $("cook-svg").innerHTML = out;
+  }
+  function resetCook(){
+    state.cook = null; $("cook-res").textContent = "";
+    $("cook-spin").textContent = "🍳 Tourner la petite roue";
+  }
+  function spinCook(){
+    if(cookSpinning || state.spinning) return;
+    var win = Math.random() < .5 ? 0 : 1;
+    /* Honey occupe la moitié droite (0°–180°), Chrobáčik la gauche : on vise le milieu ± un peu. */
+    var target = win === 0 ? 270 : 90;
+    target += (Math.random() - .5) * 140;
+    var cur = ((cookRot % 360) + 360) % 360;
+    cookRot += (reduce ? 1 : 4) * 360 + (((target - cur) % 360) + 360) % 360;
+    cookSpinning = true; $("cook-spin").disabled = true; $("cook-res").textContent = "";
+    var svg = $("cook-svg");
+    svg.style.transitionDuration = reduce ? ".5s" : "2.6s";
+    svg.style.transform = "rotate(" + cookRot + "deg)";
+    setTimeout(function(){
+      cookSpinning = false; $("cook-spin").disabled = false;
+      state.cook = COOKS[win].n;
+      $("cook-res").textContent = "👩‍🍳 " + state.cook + " aux fourneaux !";
+      $("cook-spin").textContent = "🍳 Retourner";
+    }, (reduce ? 500 : 2600) + 100);
+  }
+
+  /* ---------- Restaurants depuis Supabase (table restos), avec cache local ---------- */
+  var RESTOS_CACHE = "roue-chrobacik-restos-v2";
+  function applyRestos(data){
+    Object.keys(data || {}).forEach(function(l){
+      if(RESTOS[l] && Array.isArray(data[l]) && data[l].length) RESTOS[l].list = data[l];
+    });
+  }
+  function loadRestos(){
+    try{ applyRestos(JSON.parse(localStorage.getItem(RESTOS_CACHE) || "{}")); }catch(e){}
+    var got = {};
+    return Promise.all(Object.keys(RESTOS).map(function(l){
+      return fetch(SB_URL + "/rest/v1/restos?select=name,cuisine,lat,lon,dist,addr&order=dist&limit=3000&lieu=eq." + l,
+        {headers:{apikey:SB_KEY}})
+        .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+        .then(function(rows){
+          got[l] = rows.map(function(x){ return [x.name, x.cuisine || "", x.lat, x.lon, x.dist, x.addr || ""]; });
+        });
+    })).then(function(){
+      applyRestos(got);
+      try{ localStorage.setItem(RESTOS_CACHE, JSON.stringify(got)); }catch(e){}
+      if(!state.spinning){ var L = lieu(); $("home").textContent = L.list.length + " restos dans le coin"; }
+    }).catch(function(){});
+  }
+
   function refreshAll(){
-    var resto = state.mode === "resto";
-    if(resto && !state.restoWheel.length) buildRestoWheel();
-    $("edit").hidden = resto;
-    $("shuffle").hidden = !resto;
     var L = lieu();
     $("home").textContent = (L.list ? L.list.length : 0) + " restos dans le coin";
-    drawWheel(); if(!resto) drawChips();
+    drawWheel(); drawChips();
   }
 
   document.querySelectorAll(".lieux button").forEach(function(btn){
@@ -783,15 +854,10 @@ details.edit[open] summary::after{content:" ▴"}
       document.querySelectorAll(".lieux button").forEach(function(b){
         b.setAttribute("aria-pressed", b === btn ? "true" : "false");
       });
-      state.restoWheel = [];
       resetRound(); refreshAll();
     });
   });
 
-  $("shuffle").addEventListener("click", function(){
-    if(state.spinning) return;
-    buildRestoWheel(); resetRound(); refreshAll();
-  });
 
   document.querySelectorAll(".modes button").forEach(function(btn){
     btn.addEventListener("click", function(){
@@ -815,7 +881,7 @@ details.edit[open] summary::after{content:" ▴"}
   $("add-form").addEventListener("submit", function(ev){
     ev.preventDefault();
     var inp = $("add-input"), v = inp.value.trim();
-    if(!v || state.spinning || state.mode === "resto") return;
+    if(!v || state.spinning) return;
     var m = v.match(/^(\p{Extended_Pictographic}(?:\uFE0F|\u200D\p{Extended_Pictographic})*)\s*(.*)$/u);
     var item = m && m[2] ? {e:m[1], n:m[2]} : {e:"", n:v};
     if(state.mode === "sortir") item.q = item.n;
@@ -824,12 +890,14 @@ details.edit[open] summary::after{content:" ▴"}
   });
 
   $("reset").addEventListener("click", function(){
-    if(state.spinning || state.mode === "resto") return;
+    if(state.spinning) return;
     state.lists[state.mode] = clone(DEFAULTS[state.mode]);
     save(); push(state.mode); resetRound(); refreshAll();
   });
 
   $("eat").addEventListener("click", eatCurrent);
+  $("cook-spin").addEventListener("click", spinCook);
+  drawCookWheel();
   $("connect").addEventListener("click", function(){
     var c = window.prompt("Code de la roue partagée :", "");
     if(!c || !c.trim()) return;
@@ -857,6 +925,7 @@ details.edit[open] summary::after{content:" ▴"}
   refreshAll();
   drawStats();
   pull();
+  loadRestos();
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) pull(); });
   if(location.hash){ try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){} }
 })();

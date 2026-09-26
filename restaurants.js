@@ -1,5 +1,5 @@
-/* Restaurants récupérés sur OpenStreetMap (© contributeurs OpenStreetMap, licence ODbL)
-   via l'API Overpass le 2026-09-26 : amenity=restaurant|fast_food, triés par distance.
+/* Liste de secours (hors ligne) : la page charge la liste complète depuis la table
+   Supabase `restos`. Données © contributeurs OpenStreetMap (ODbL), scrape Overpass 2026-09-26.
    Format : [nom, cuisine OSM, lat, lon, distance en mètres, adresse] */
 window.RESTOS = {
   la: {
