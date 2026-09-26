@@ -34,7 +34,12 @@
     ["D · schéma de l'app (simple)", "ubereats://"],
     ["E · lanceur Android (sans Play Store)", "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ubercab.eats;end"],
     ["F · resto Napoli Gang (forcé vers l'app)", "intent://" + store + "#Intent;scheme=https;package=com.ubercab.eats;end"],
-    ["G · resto Napoli Gang (lien web normal)", "https://" + store]
+    ["G · resto Napoli Gang (lien web normal)", "https://" + store],
+    ["H · resto Napoli Gang sans /fr/ (forcé vers l'app)", "intent://" + store.replace("/fr/", "/") + "#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["I · recherche « Pizza » (forcé vers l'app)", "intent://www.ubereats.com/search?diningMode=DELIVERY&q=Pizza&sc=SEARCH_BAR#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["J · recherche « Pizza » simple (forcé vers l'app)", "intent://www.ubereats.com/search?q=Pizza#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["K · recherche « Pizza » /fr/ (forcé vers l'app)", "intent://www.ubereats.com/fr/search?q=Pizza#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["L · recherche « Pizza » via le schéma de l'app", "intent://search?q=Pizza#Intent;scheme=ubereats;package=com.ubercab.eats;end"]
   ];
   var ol = document.getElementById("list");
   links.forEach(function(l){

@@ -464,10 +464,15 @@ details.edit[open] summary::after{content:" ▴"}
   var ANDROID = /Android/i.test(navigator.userAgent || "");
   /* Ouvre l'app Uber Eats sur son accueil (Android) : lien d'app vers ubereats.com, forcé vers l'app. */
   var UE_APP = "intent://www.ubereats.com/#Intent;scheme=https;package=com.ubercab.eats;end";
+  /* Le lien d'accueil forcé ouvre bien l'app ; on garde le même format, sans le préfixe de langue /fr/
+     que l'app ne reconnaît pas. */
   function ueHref(url){
     if(!ANDROID) return url;
-    return "intent://" + url.replace(/^https?:\/\//, "") +
-      "#Intent;scheme=https;package=com.ubercab.eats;S.browser_fallback_url=" + encodeURIComponent(url) + ";end";
+    return "intent://" + url.replace(/^https?:\/\//, "").replace(/^(www\.ubereats\.com)\/[a-z]{2}(-[a-z]{2})?\//i, "$1/") +
+      "#Intent;scheme=https;package=com.ubercab.eats;end";
+  }
+  function ueSearchHref(term){
+    return ueHref("https://www.ubereats.com/search?diningMode=DELIVERY&q=" + encodeURIComponent(term) + "&sc=SEARCH_BAR");
   }
   function ueItem(it, r){
     var li = document.createElement("li"), a = document.createElement("a"),
@@ -850,7 +855,7 @@ details.edit[open] summary::after{content:" ▴"}
         /* L'app ne sait pas ouvrir une catégorie : on copie la cuisine puis on lance l'app (Android)
            ou le site catégorie (ailleurs). Il reste à coller dans la recherche d'Uber Eats. */
         var term = state.lieu === "la" && it.q ? it.q.replace(/\s+(restaurant|food)$/i, "") : it.n;
-        cat.href = ANDROID ? UE_APP : catUrl;
+        cat.href = ANDROID ? ueSearchHref(term) : catUrl;
         cat.textContent = "Tout voir sur Uber Eats ↗";
         if(ANDROID){ cat.removeAttribute("target"); }
         cat.onclick = function(ev){
