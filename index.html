@@ -285,6 +285,14 @@ details.edit[open] summary::after{content:" ▴"}
       <ul id="recent"></ul>
     </div>
   </details>
+  <details class="edit stats" id="users">
+    <summary>Utilisateurs 👥</summary>
+    <div class="edit-body">
+      <p class="near-title" id="users-sum">Chargement…</p>
+      <ul id="devices"></ul>
+      <p class="hint">Chaque téléphone ou ordinateur qui ouvre la roue partagée compte comme un appareil (anonyme).</p>
+    </div>
+  </details>
   <p class="sync" id="sync" aria-live="polite"></p>
   <p class="sync"><button type="button" class="reset" id="connect" hidden>🔗 Entrer le code de la roue partagée</button></p>
   <p class="credit">Restaurants : © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a></p>
@@ -585,6 +593,61 @@ details.edit[open] summary::after{content:" ▴"}
     if(!rows.length) rec.innerHTML = '<li class="empty">Aucun repas sur cette période.</li>';
   }
 
+  /* ---------- Appareils (onglet Utilisateurs) ---------- */
+  var DEVICE_KEY = "roue-chrobacik-device";
+  function deviceId(){
+    var id = "";
+    try{ id = localStorage.getItem(DEVICE_KEY) || ""; }catch(e){}
+    if(id.length < 8){
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
+        : "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      try{ localStorage.setItem(DEVICE_KEY, id); }catch(e){}
+    }
+    return id;
+  }
+  var DEVICE = deviceId(), pinged = false;
+  function platform(){
+    var ua = navigator.userAgent || "";
+    if(/iPad/.test(ua)) return "iPad";
+    if(/iPhone|iPod/.test(ua)) return "iPhone";
+    if(/Android/.test(ua)) return /Mobile/.test(ua) ? "Android" : "Tablette Android";
+    if(/Macintosh/.test(ua)) return navigator.maxTouchPoints > 1 ? "iPad" : "Mac";
+    if(/Windows/.test(ua)) return "PC Windows";
+    if(/Linux|CrOS/.test(ua)) return "Ordinateur";
+    return "Autre appareil";
+  }
+  function pingDevice(){
+    if(pinged || !CODE) return;
+    pinged = true;
+    rpc("ping_device", {p_code: CODE, p_device: DEVICE, p_platform: platform()})
+      .then(loadDevices).catch(function(){ pinged = false; });
+  }
+  function ago(ts){
+    var d = Math.floor((Date.now() - Date.parse(ts)) / 864e5);
+    return d <= 0 ? "aujourd'hui" : d === 1 ? "hier" : "il y a " + d + " jours";
+  }
+  function loadDevices(){
+    if(!CODE){ $("users-sum").textContent = "Roue pas encore partagée sur ce téléphone."; return; }
+    rpc("get_devices", {p_code: CODE}).then(function(list){
+      if(!Array.isArray(list)) return;
+      var week = Date.now() - 7 * 864e5;
+      var active = list.filter(function(d){ return Date.parse(d.last_seen) >= week; }).length;
+      $("users-sum").textContent = list.length + " appareil" + (list.length > 1 ? "s" : "") +
+        " · " + active + " actif" + (active > 1 ? "s" : "") + " cette semaine";
+      var ul = $("devices"); ul.innerHTML = "";
+      list.forEach(function(d){
+        var li = document.createElement("li"), txt = document.createElement("span"), sm = document.createElement("small"), c = document.createElement("span");
+        var mobile = /iPhone|Android/.test(d.platform);
+        txt.className = "grow";
+        txt.textContent = (mobile ? "📱 " : "💻 ") + (d.platform || "Appareil") + (d.device_id === DEVICE ? " (cet appareil)" : "");
+        sm.textContent = "Vu " + ago(d.last_seen) + " · depuis " + (DAY_FMT ? DAY_FMT.format(new Date(d.first_seen)) : "");
+        txt.appendChild(document.createElement("br")); txt.appendChild(sm);
+        c.className = "count"; c.textContent = d.visits + " visite" + (d.visits > 1 ? "s" : "");
+        li.appendChild(txt); li.appendChild(c); ul.appendChild(li);
+      });
+    }).catch(function(){ $("users-sum").textContent = "Impossible de charger les appareils."; });
+  }
+
   var pulling = false;
   function pull(){
     $("connect").hidden = !!CODE;
@@ -602,7 +665,7 @@ details.edit[open] summary::after{content:" ▴"}
       save();
       if(changed && !state.spinning){ resetRound(); refreshAll(); }
       setSync("Roue partagée ✓");
-      pullHistory();
+      pullHistory(); pingDevice();
     }).catch(function(e){
       var bad = e.status === 400 || e.status === 401 || e.status === 403;
       if(bad) $("connect").hidden = false;
@@ -897,6 +960,7 @@ details.edit[open] summary::after{content:" ▴"}
 
   $("eat").addEventListener("click", eatCurrent);
   $("cook-spin").addEventListener("click", spinCook);
+  $("users").addEventListener("toggle", function(){ if(this.open) loadDevices(); });
   drawCookWheel();
   $("connect").addEventListener("click", function(){
     var c = window.prompt("Code de la roue partagée :", "");
