@@ -56,7 +56,7 @@ main{position:relative; max-width:520px; margin:0 auto; padding:28px 20px 48px}
 
 header{text-align:center; margin-bottom:18px}
 h1{
-  font-family:var(--serif); font-weight:700; font-size:clamp(1.9rem,7.5vw,2.5rem);
+  font-family:var(--serif); font-weight:700; font-size:clamp(1.2rem,6.2vw,2.5rem); white-space:nowrap;
   line-height:1.1; margin:0 0 6px; letter-spacing:-.01em;
 }
 .tagline{font-family:var(--hand); font-size:1.45rem; color:var(--velvet); margin:0}
@@ -92,6 +92,22 @@ h1{
 .near a{display:block; padding:9px 4px; color:var(--ink); text-decoration:none}
 .near a:hover strong{text-decoration:underline}
 .near small{display:block; color:var(--muted); font-size:.82rem; margin-top:2px}
+.btn.eat{display:block; width:100%; margin:0 0 10px; background:var(--sun); border-color:var(--sun2); color:#141E38}
+.btn.eat:disabled{opacity:.7; cursor:default}
+.norepeat{display:flex; align-items:center; justify-content:center; gap:8px; color:var(--muted); font-size:.9rem; margin:-10px 0 18px; cursor:pointer}
+.norepeat input{width:18px; height:18px; accent-color:var(--velvet)}
+.stats h3{font:700 1rem var(--sans); margin:0 0 8px}
+.stats h3 + p{margin-top:0}
+.stats ol, .stats ul{list-style:none; margin:0 0 16px; padding:0}
+.stats li{display:flex; align-items:center; gap:8px; padding:7px 0; border-top:1px solid var(--line); font-size:.92rem}
+.stats li .grow{flex:1; min-width:0}
+.stats li small{color:var(--muted)}
+.stats .count{font-weight:700; color:var(--velvet)}
+.stats li button{border:0; background:transparent; color:var(--muted); cursor:pointer; width:26px; height:26px; border-radius:50%}
+.stats .filters{display:flex; gap:6px; flex-wrap:wrap; margin:0 0 12px}
+.stats .filters button{font:600 .82rem/1 var(--sans); color:var(--muted); background:transparent; border:1.5px solid var(--line); border-radius:999px; padding:7px 11px; cursor:pointer}
+.stats .filters button[aria-pressed="true"]{color:var(--ink); border-color:var(--velvet)}
+.empty{color:var(--muted); font-size:.9rem}
 .credit{text-align:center; color:var(--muted); font-size:.75rem; margin:22px 0 0}
 .credit a{color:inherit}
 
@@ -181,7 +197,7 @@ details.edit[open] summary::after{content:" ▴"}
 <body>
 <main>
   <header>
-    <h1>Chrobáčik, on mange quoi ?</h1>
+    <h1>Chrobáčik, on mange quoi&nbsp;?</h1>
     <p class="tagline">Tu ne choisis pas. La roue choisit.</p>
     <div class="lieux" role="group" aria-label="Où es-tu">
       <button type="button" data-lieu="la" aria-pressed="true">Los Angeles 🌴</button>
@@ -195,6 +211,8 @@ details.edit[open] summary::after{content:" ▴"}
     <button type="button" data-mode="resto" aria-pressed="false">Resto 🎲</button>
     <button type="button" data-mode="maison" aria-pressed="false">Maison 🏠</button>
   </div>
+
+  <label class="norepeat"><input type="checkbox" id="norepeat"> Pas de redite (7 derniers jours)</label>
 
   <div class="wheel-wrap">
     <svg class="pointer" viewBox="0 0 34 44" aria-hidden="true">
@@ -214,6 +232,7 @@ details.edit[open] summary::after{content:" ▴"}
     <p class="near-title" id="r-near-title" hidden></p>
     <ul class="near" id="r-near" hidden></ul>
     <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir sur Google Maps</a>
+    <button type="button" class="btn eat" id="eat">✅ On mange ça !</button>
     <div class="actions">
       <button type="button" class="btn" id="veto">Veto</button>
       <button type="button" class="btn primary" id="again">Relancer</button>
@@ -231,6 +250,21 @@ details.edit[open] summary::after{content:" ▴"}
       </form>
       <p class="hint">Commence par un emoji si tu veux. Les changements sont partagés entre Honey et Chrobáčik.</p>
       <button type="button" class="reset" id="reset">Revenir à la liste d'origine</button>
+    </div>
+  </details>
+
+  <details class="edit stats" id="stats">
+    <summary>Nos repas 📊</summary>
+    <div class="edit-body">
+      <div class="filters" role="group" aria-label="Période">
+        <button type="button" data-days="30" aria-pressed="true">30 jours</button>
+        <button type="button" data-days="365" aria-pressed="false">1 an</button>
+        <button type="button" data-days="0" aria-pressed="false">Tout</button>
+      </div>
+      <h3>Les plus mangés</h3>
+      <ol id="top"></ol>
+      <h3>Derniers repas</h3>
+      <ul id="recent"></ul>
     </div>
   </details>
   <p class="sync" id="sync" aria-live="polite"></p>
@@ -449,6 +483,85 @@ details.edit[open] summary::after{content:" ▴"}
       });
     return out.length >= 2 ? out : null;
   }
+  /* ---------- Historique des repas (Supabase : wheel_history) ---------- */
+  var HIST_KEY = "roue-chrobacik-history", NOREPEAT_KEY = "roue-chrobacik-norepeat";
+  var NOREPEAT_DAYS = 7;
+  function loadHistory(){
+    try{ var h = JSON.parse(localStorage.getItem(HIST_KEY) || "[]"); if(Array.isArray(h)) return h; }catch(e){}
+    return [];
+  }
+  function saveHistory(){ try{ localStorage.setItem(HIST_KEY, JSON.stringify(state.history.slice(0, 500))); }catch(e){} }
+  function pullHistory(){
+    if(!CODE) return;
+    rpc("get_history", {p_code: CODE}).then(function(h){
+      if(!Array.isArray(h)) return;
+      state.history = h; saveHistory(); drawStats();
+      if(state.norepeat && !state.spinning && state.current === null) drawWheel();
+    }).catch(function(){});
+  }
+  function recentNames(){
+    var since = Date.now() - NOREPEAT_DAYS * 864e5, out = {};
+    state.history.forEach(function(h){ if(Date.parse(h.eaten_at) >= since) out[norm(h.name)] = true; });
+    return out;
+  }
+  function eatCurrent(){
+    if(state.current === null) return;
+    var it = list()[state.current], btn = $("eat");
+    var entry = {mode: state.mode, lieu: state.lieu, name: it.n, emoji: it.e || "", resto: it.r ? it.r[0] : null};
+    btn.disabled = true; btn.textContent = "Noté ✓ Bon appétit !";
+    if(!CODE){
+      entry.id = "local-" + Date.now(); entry.eaten_at = new Date().toISOString();
+      state.history.unshift(entry); saveHistory(); drawStats(); return;
+    }
+    rpc("log_meal", {p_code: CODE, p_mode: entry.mode, p_lieu: entry.lieu, p_name: entry.name, p_emoji: entry.emoji, p_resto: entry.resto})
+      .then(function(row){ state.history.unshift(row); saveHistory(); drawStats(); setSync("Repas enregistré ✓"); })
+      .catch(function(){ btn.disabled = false; btn.textContent = "✅ On mange ça !"; setSync("Pas enregistré. Réessaie dans un instant."); });
+  }
+  function deleteMeal(h){
+    function drop(){
+      state.history = state.history.filter(function(x){ return x.id !== h.id; });
+      saveHistory(); drawStats();
+    }
+    if(typeof h.id === "number" && CODE){
+      rpc("delete_meal", {p_code: CODE, p_id: h.id}).then(drop)
+        .catch(function(){ setSync("Pas supprimé. Réessaie dans un instant."); });
+    } else drop();
+  }
+  var DAY_FMT;
+  try{ DAY_FMT = new Intl.DateTimeFormat("fr-FR", {weekday:"short", day:"numeric", month:"short"}); }catch(e){}
+  function drawStats(){
+    var since = state.statsDays ? Date.now() - state.statsDays * 864e5 : 0;
+    var rows = state.history.filter(function(h){ return Date.parse(h.eaten_at) >= since; });
+    var counts = {}, order = [];
+    rows.forEach(function(h){
+      var k = norm(h.name);
+      if(!counts[k]){ counts[k] = {h:h, n:0}; order.push(k); }
+      counts[k].n++;
+    });
+    order.sort(function(a,b){ return counts[b].n - counts[a].n; });
+    var top = $("top"); top.innerHTML = "";
+    order.slice(0, 5).forEach(function(k){
+      var li = document.createElement("li"), name = document.createElement("span"), c = document.createElement("span");
+      name.className = "grow"; name.textContent = (counts[k].h.emoji ? counts[k].h.emoji + " " : "") + counts[k].h.name;
+      c.className = "count"; c.textContent = "×" + counts[k].n;
+      li.appendChild(name); li.appendChild(c); top.appendChild(li);
+    });
+    if(!order.length) top.innerHTML = '<li class="empty">Rien encore. Tourne la roue puis « On mange ça ».</li>';
+    var rec = $("recent"); rec.innerHTML = "";
+    rows.slice(0, 15).forEach(function(h){
+      var li = document.createElement("li"), txt = document.createElement("span"), sm = document.createElement("small"), del = document.createElement("button");
+      txt.className = "grow"; txt.textContent = (h.emoji ? h.emoji + " " : "") + h.name + " ";
+      var d = new Date(h.eaten_at);
+      sm.textContent = (DAY_FMT ? DAY_FMT.format(d) : d.toLocaleDateString()) + " · " + (RESTOS[h.lieu] ? RESTOS[h.lieu].label : "") +
+        (h.mode === "maison" ? " · maison" : "");
+      txt.appendChild(document.createElement("br")); txt.appendChild(sm);
+      del.type = "button"; del.textContent = "✕"; del.setAttribute("aria-label", "Supprimer " + h.name);
+      del.addEventListener("click", function(){ deleteMeal(h); });
+      li.appendChild(txt); li.appendChild(del); rec.appendChild(li);
+    });
+    if(!rows.length) rec.innerHTML = '<li class="empty">Aucun repas sur cette période.</li>';
+  }
+
   var pulling = false;
   function pull(){
     if(!CODE){ setSync("Mode local : les changements restent sur ce téléphone."); return; }
@@ -465,6 +578,7 @@ details.edit[open] summary::after{content:" ▴"}
       save();
       if(changed && !state.spinning){ resetRound(); refreshAll(); }
       setSync("Roue partagée ✓");
+      pullHistory();
     }).catch(function(e){
       setSync(e.status === 400 || e.status === 401 || e.status === 403
         ? "Lien incomplet : demande le lien à Honey."
@@ -481,6 +595,7 @@ details.edit[open] summary::after{content:" ▴"}
 
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   var state = {
+    history:loadHistory(), statsDays:30, norepeat:false,
     mode:"sortir", lists:load(), rotation:0, spinning:false, lieu:loadLieu(), restoWheel:[],
     vetoed:{}, vetosLeft:2, relances:0, current:null
   };
@@ -500,6 +615,7 @@ details.edit[open] summary::after{content:" ▴"}
 
   function drawWheel(){
     var items = list(), n = items.length, seg = 360 / n, R = 180, out = "";
+    var blocked = state.norepeat && poolIgnoresRecent() === false ? recentNames() : {};
     for(var k=0;k<28;k++){
       var a = k * (360/28);
       out += '<ellipse cx="220" cy="22" rx="11" ry="26" fill="' + (k%2 ? "#E09E00" : "#F2B705") +
@@ -511,7 +627,7 @@ details.edit[open] summary::after{content:" ▴"}
       var c = PAL[i % PAL.length];
       if(i === n-1 && n % PAL.length === 1) c = PAL[2];
       var a0 = i*seg, a1 = a0+seg, p0 = pt(a0,R), p1 = pt(a1,R), mid = a0 + seg/2;
-      var off = !!state.vetoed[i];
+      var off = !!state.vetoed[i] || !!blocked[norm(items[i].n)];
       out += '<path d="M220 220 L' + p0[0].toFixed(2) + ' ' + p0[1].toFixed(2) +
              ' A' + R + ' ' + R + ' 0 ' + (seg>180?1:0) + ' 1 ' + p1[0].toFixed(2) + ' ' + p1[1].toFixed(2) +
              ' Z" fill="' + c.f + '" stroke="#141E38" stroke-width="1.5"' + (off ? ' opacity=".28"' : '') + '/>';
@@ -524,10 +640,22 @@ details.edit[open] summary::after{content:" ▴"}
   }
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
-  function pool(){
+  function basePool(){
     var p = [];
     for(var i=0;i<list().length;i++) if(!state.vetoed[i]) p.push(i);
     return p;
+  }
+  /* « Pas de redite » : on retire ce qu'on a mangé récemment, sauf si ça vide la roue. */
+  function poolIgnoresRecent(){
+    if(!state.norepeat) return true;
+    var recent = recentNames(), items = list();
+    return !basePool().some(function(i){ return !recent[norm(items[i].n)]; });
+  }
+  function pool(){
+    var p = basePool();
+    if(poolIgnoresRecent()) return p;
+    var recent = recentNames(), items = list();
+    return p.filter(function(i){ return !recent[norm(items[i].n)]; });
   }
 
   function spin(){
@@ -602,6 +730,7 @@ details.edit[open] summary::after{content:" ▴"}
       veto.disabled = true;
     }
     $("again").disabled = false;
+    var eat = $("eat"); eat.disabled = false; eat.textContent = "✅ On mange ça !";
     result.hidden = false;
   }
 
@@ -693,7 +822,26 @@ details.edit[open] summary::after{content:" ▴"}
     save(); push(state.mode); resetRound(); refreshAll();
   });
 
+  $("eat").addEventListener("click", eatCurrent);
+  try{ state.norepeat = localStorage.getItem(NOREPEAT_KEY) === "1"; }catch(e){}
+  $("norepeat").checked = state.norepeat;
+  $("norepeat").addEventListener("change", function(){
+    state.norepeat = this.checked;
+    try{ localStorage.setItem(NOREPEAT_KEY, state.norepeat ? "1" : "0"); }catch(e){}
+    if(!state.spinning){ resetRound(); drawWheel(); }
+  });
+  document.querySelectorAll(".stats .filters button").forEach(function(btn){
+    btn.addEventListener("click", function(){
+      state.statsDays = +btn.dataset.days;
+      document.querySelectorAll(".stats .filters button").forEach(function(b){
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      drawStats();
+    });
+  });
+
   refreshAll();
+  drawStats();
   pull();
   document.addEventListener("visibilitychange", function(){ if(!document.hidden) pull(); });
   if(location.hash){ try{ history.replaceState(null, "", location.pathname + location.search); }catch(e){} }
