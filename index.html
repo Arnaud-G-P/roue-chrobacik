@@ -452,10 +452,19 @@ details.edit[open] summary::after{content:" ▴"}
       ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
     }catch(e){}
   }
+  /* Android (Brave, Chrome, Samsung) : un lien « intent » force l'ouverture dans l'app Uber Eats,
+     avec le site web en secours si l'app n'est pas installée. Ailleurs : lien web classique. */
+  var ANDROID = /Android/i.test(navigator.userAgent || "");
+  function ueHref(url){
+    if(!ANDROID) return url;
+    return "intent://" + url.replace(/^https?:\/\//, "") +
+      "#Intent;scheme=https;package=com.ubercab.eats;S.browser_fallback_url=" + encodeURIComponent(url) + ";end";
+  }
   function ueItem(it, r){
     var li = document.createElement("li"), a = document.createElement("a"),
         b = document.createElement("strong"), sm = document.createElement("small");
-    a.href = r.url; a.target = "_blank"; a.rel = "noopener";
+    a.href = ueHref(r.url);
+    if(!ANDROID){ a.target = "_blank"; a.rel = "noopener"; }
     b.textContent = (it.e ? it.e + " " : "") + r.name;
     sm.textContent = ueLabels(r) + (r.dist != null ? " — " + fmtDist(r.dist) : "") + " · ";
     var ue = document.createElement("span"); ue.className = "ue"; ue.textContent = "Commander →";
@@ -829,7 +838,8 @@ details.edit[open] summary::after{content:" ▴"}
       };
       cat.hidden = !catUrl;
       if(catUrl){
-        cat.href = catUrl; cat.textContent = "Tout voir sur Uber Eats ↗";
+        cat.href = ueHref(catUrl); cat.textContent = "Tout voir sur Uber Eats ↗";
+        if(ANDROID){ cat.removeAttribute("target"); }
         var term = state.lieu === "la" && it.q ? it.q.replace(/\s+(restaurant|food)$/i, "") : it.n;
         cat.onclick = function(){
           copyText(term);

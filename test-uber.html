@@ -15,14 +15,14 @@
   ol{list-style:none; padding:0; margin:0; counter-reset:n}
   li{counter-increment:n; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 10px}
   li::before{content:"Lien " counter(n); display:block; font-weight:700; margin-bottom:6px}
-  a{display:inline-block; background:var(--green); color:#fff; font-weight:700; text-decoration:none; border-radius:999px; padding:10px 16px}
+  a{display:inline-block; -webkit-tap-highlight-color:transparent; background:var(--green); color:#fff; font-weight:700; text-decoration:none; border-radius:999px; padding:10px 16px}
   code{display:block; color:var(--muted); font-size:.78rem; word-break:break-all; margin-top:8px}
 </style>
 </head>
 <body>
 <main>
   <h1>Test des liens Uber Eats 🍕</h1>
-  <p>Appuie sur chaque bouton, puis reviens ici. Note les numéros qui ouvrent l'app Uber Eats <strong>directement sur « pizza »</strong>.</p>
+  <p>Appuie sur chaque bouton, puis reviens ici. Note les numéros qui ouvrent <strong>l'app</strong> Uber Eats (pas le site) et ce qu'elle affiche : la recherche « pizza », une page pizza, le resto Napoli Gang (lien 14), ou juste l'accueil.</p>
   <ol id="list"></ol>
 </main>
 <script>
@@ -38,7 +38,12 @@
     "https://www.ubereats.com/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
     "https://www.ubereats.com/fr/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
     "https://www.ubereats.com/category/los-angeles-ca/" + q,
-    "https://www.ubereats.com/fr/category/montrouge-idf/" + q
+    "https://www.ubereats.com/fr/category/montrouge-idf/" + q,
+    "intent://www.ubereats.com/fr/search?q=" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
+    "intent://www.ubereats.com/fr/category/montrouge-idf/" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
+    "intent://www.ubereats.com/fr/store/napoli-gang-by-big-mamma-petit-montrouge/ud4VYNJ-SwazRO_38Zbvfw#Intent;scheme=https;package=com.ubercab.eats;end",
+    "intent://search?q=" + q + "#Intent;scheme=ubereats;end",
+    "intent://#Intent;scheme=ubereats;package=com.ubercab.eats;end"
   ];
   var ol = document.getElementById("list");
   links.forEach(function(href){
