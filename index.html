@@ -161,6 +161,10 @@ h1{
 .btn.uber{display:block; width:100%; margin:0 0 12px; background:#06C167; border-color:#06C167; color:#fff; text-decoration:none; text-align:center}
 .btn.uber[hidden]{display:none}
 .near small .ue{color:#06A35A; font-weight:700}
+.toast{position:fixed; left:50%; bottom:calc(20px + env(safe-area-inset-bottom,0px)); transform:translateX(-50%); z-index:20;
+  max-width:min(92vw,420px); background:#141E38; color:#FCEFD6; border-radius:14px; padding:12px 16px; font-weight:600; font-size:.92rem;
+  box-shadow:0 6px 20px rgba(0,0,0,.3); text-align:center}
+.toast[hidden]{display:none}
 .actions{display:flex; gap:10px; justify-content:center; flex-wrap:wrap}
 .btn{
   font:700 .95rem/1 var(--sans); border-radius:999px; padding:12px 18px; cursor:pointer;
@@ -300,6 +304,7 @@ details.edit[open] summary::after{content:" ▴"}
     </div>
   </details>
   <p class="sync" id="sync" aria-live="polite"></p>
+  <div class="toast" id="toast" role="status" hidden></div>
   <p class="sync"><button type="button" class="reset" id="connect" hidden>🔗 Entrer le code de la roue partagée</button></p>
   <p class="credit">Restaurants : © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">contributeurs OpenStreetMap</a></p>
 </main>
@@ -433,6 +438,28 @@ details.edit[open] summary::after{content:" ▴"}
   }
   /* Uber Eats : recherche (l'app s'ouvre si elle est installée, adresse de livraison du compte). */
   function uberUrl(q){ return "https://www.ubereats.com/search?q=" + encodeURIComponent(q); }
+  /* L'app Uber Eats ignore la recherche des liens web : on copie le terme pour le coller dans l'app. */
+  var toastTimer;
+  function toast(t){
+    var el = document.getElementById("toast"); el.textContent = t; el.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function(){ el.hidden = true; }, 6000);
+  }
+  function copyText(t){
+    try{ if(navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(t); }catch(e){}
+    try{
+      var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", "");
+      ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta);
+      ta.select(); document.execCommand("copy"); document.body.removeChild(ta);
+    }catch(e){}
+    return Promise.resolve();
+  }
+  function uberLink(a, term){
+    a.href = uberUrl(term); a.target = "_blank"; a.rel = "noopener";
+    a.onclick = function(){
+      copyText(term);
+      toast("« " + term + " » copié 📋 Colle-le dans la recherche Uber Eats.");
+    };
+  }
   function norm(s){ return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim(); }
   /* Restaurants du lieu courant qui servent la cuisine choisie, du plus proche au plus loin. */
   function restosFor(it){
@@ -805,7 +832,7 @@ details.edit[open] summary::after{content:" ▴"}
         picks.forEach(function(r){
           var li = document.createElement("li"), a = document.createElement("a"),
               b = document.createElement("strong"), sm = document.createElement("small");
-          a.href = uberUrl(r[0]); a.target = "_blank"; a.rel = "noopener";
+          uberLink(a, r[0]);
           b.textContent = restoEmoji(r) + " " + r[0];
           sm.textContent = restoCuisine(r) + " — " + restoLine(r) + " · ";
           var ue = document.createElement("span"); ue.className = "ue"; ue.textContent = "Uber Eats →";
@@ -815,7 +842,7 @@ details.edit[open] summary::after{content:" ▴"}
         nearTitle.hidden = false; near.hidden = false;
       }
       var uber = $("r-uber");
-      uber.href = uberUrl(state.lieu === "la" ? (it.q || it.n).replace(/\s+(restaurant|food)$/i, "") : it.n);
+      uberLink(uber, state.lieu === "la" ? (it.q || it.n).replace(/\s+(restaurant|food)$/i, "") : it.n);
       uber.hidden = false;
       var q = (it.q || it.n) + " near " + L.city;
       maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
