@@ -462,10 +462,8 @@ details.edit[open] summary::after{content:" ▴"}
   /* Android (Brave, Chrome, Samsung) : un lien « intent » force l'ouverture dans l'app Uber Eats,
      avec le site web en secours si l'app n'est pas installée. Ailleurs : lien web classique. */
   var ANDROID = /Android/i.test(navigator.userAgent || "");
-  /* Lance l'app Uber Eats sur son accueil (Android), sinon la fiche Play Store. */
-  var UE_APP = "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;" +
-    "package=com.ubercab.eats;S.browser_fallback_url=" +
-    encodeURIComponent("https://play.google.com/store/apps/details?id=com.ubercab.eats") + ";end";
+  /* Ouvre l'app Uber Eats sur son accueil (Android) : lien d'app vers ubereats.com, forcé vers l'app. */
+  var UE_APP = "intent://www.ubereats.com/#Intent;scheme=https;package=com.ubercab.eats;end";
   function ueHref(url){
     if(!ANDROID) return url;
     return "intent://" + url.replace(/^https?:\/\//, "") +

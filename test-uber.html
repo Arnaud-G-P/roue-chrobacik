@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test liens Uber Eats</title>
+<title>Test ouverture Uber Eats</title>
 <style>
   :root{--bg:#F4F1EA; --ink:#141E38; --muted:#4B5878; --card:#fff; --line:rgba(20,30,56,.14); --green:#06C167}
   @media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){--bg:#141E38; --ink:#F6EBD3; --muted:#B7BFD6; --card:#1E2A4D; --line:rgba(246,235,211,.14)} }
@@ -12,45 +12,35 @@
   main{max-width:520px; margin:0 auto; padding:24px 16px 48px}
   h1{font-size:1.4rem; margin:0 0 8px}
   p{color:var(--muted); margin:0 0 16px}
-  ol{list-style:none; padding:0; margin:0; counter-reset:n}
-  li{counter-increment:n; background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 10px}
-  li::before{content:"Lien " counter(n); display:block; font-weight:700; margin-bottom:6px}
-  a{display:inline-block; -webkit-tap-highlight-color:transparent; background:var(--green); color:#fff; font-weight:700; text-decoration:none; border-radius:999px; padding:10px 16px}
-  code{display:block; color:var(--muted); font-size:.78rem; word-break:break-all; margin-top:8px}
+  ol{list-style:none; padding:0; margin:0}
+  li{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:12px 14px; margin:0 0 10px}
+  li b{display:block; margin-bottom:6px}
+  a{display:inline-block; background:var(--green); color:#fff; font-weight:700; text-decoration:none; border-radius:999px; padding:10px 16px}
+  code{display:block; color:var(--muted); font-size:.75rem; word-break:break-all; margin-top:8px}
 </style>
 </head>
 <body>
 <main>
-  <h1>Test des liens Uber Eats 🍕</h1>
-  <p>Appuie sur chaque bouton, puis reviens ici. Note les numéros qui ouvrent <strong>l'app</strong> Uber Eats (pas le site) et ce qu'elle affiche : la recherche « pizza », une page pizza, le resto Napoli Gang (lien 14), ou juste l'accueil.</p>
+  <h1>Quel lien ouvre l'app Uber Eats ? 📱</h1>
+  <p>Appuie sur chaque bouton puis reviens ici. Dis-moi les lettres qui ouvrent <strong>l'app installée</strong> (pas le site, pas le Play Store).</p>
   <ol id="list"></ol>
 </main>
 <script>
-  var q = "pizza";
+  var store = "www.ubereats.com/fr/store/napoli-gang-by-big-mamma-petit-montrouge/ud4VYNJ-SwazRO_38Zbvfw";
   var links = [
-    "ubereats://search?q=" + q,
-    "ubereats://search?query=" + q,
-    "ubereats://search?searchTerm=" + q,
-    "ubereats://feed?q=" + q,
-    "intent://search?q=" + q + "#Intent;scheme=ubereats;package=com.ubercab.eats;end",
-    "intent://www.ubereats.com/search?q=" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
-    "intent://www.ubereats.com/category/los-angeles-ca/" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
-    "https://www.ubereats.com/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
-    "https://www.ubereats.com/fr/search?diningMode=DELIVERY&q=" + q + "&sc=SEARCH_BAR",
-    "https://www.ubereats.com/category/los-angeles-ca/" + q,
-    "https://www.ubereats.com/fr/category/montrouge-idf/" + q,
-    "intent://www.ubereats.com/fr/search?q=" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
-    "intent://www.ubereats.com/fr/category/montrouge-idf/" + q + "#Intent;scheme=https;package=com.ubercab.eats;end",
-    "intent://www.ubereats.com/fr/store/napoli-gang-by-big-mamma-petit-montrouge/ud4VYNJ-SwazRO_38Zbvfw#Intent;scheme=https;package=com.ubercab.eats;end",
-    "intent://search?q=" + q + "#Intent;scheme=ubereats;end",
-    "intent://#Intent;scheme=ubereats;package=com.ubercab.eats;end"
+    ["A · accueil (lien web forcé vers l'app)", "intent://www.ubereats.com/#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["B · fil d'accueil (lien web forcé vers l'app)", "intent://www.ubereats.com/fr/feed#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["C · schéma de l'app", "intent://#Intent;scheme=ubereats;package=com.ubercab.eats;end"],
+    ["D · schéma de l'app (simple)", "ubereats://"],
+    ["E · lanceur Android (sans Play Store)", "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;package=com.ubercab.eats;end"],
+    ["F · resto Napoli Gang (forcé vers l'app)", "intent://" + store + "#Intent;scheme=https;package=com.ubercab.eats;end"],
+    ["G · resto Napoli Gang (lien web normal)", "https://" + store]
   ];
   var ol = document.getElementById("list");
-  links.forEach(function(href){
-    var li = document.createElement("li"), a = document.createElement("a"), c = document.createElement("code");
-    a.href = href; a.textContent = "Ouvrir Uber Eats";
-    c.textContent = href;
-    li.appendChild(a); li.appendChild(c); ol.appendChild(li);
+  links.forEach(function(l){
+    var li = document.createElement("li"), t = document.createElement("b"), a = document.createElement("a"), c = document.createElement("code");
+    t.textContent = l[0]; a.href = l[1]; a.textContent = "Ouvrir"; c.textContent = l[1];
+    li.appendChild(t); li.appendChild(a); li.appendChild(c); ol.appendChild(li);
   });
 </script>
 </body>
