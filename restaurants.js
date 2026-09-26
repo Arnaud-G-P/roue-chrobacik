@@ -4,8 +4,8 @@
 window.RESTOS = {
   la: {
     label: "Los Angeles", short: "LA 🌴",
-    home: "1637 Malcolm Ave", city: "Westwood, Los Angeles, CA",
-    lat: 34.05345, lon: -118.43741, radius: 1500,
+    city: "Westwood, Los Angeles, CA",
+    radius: 1500,
     list: [
 ["LA Halal Bites","mediterranean",34.05234,-118.43898,190,""],
 ["La Bruschetta","italian",34.05246,-118.43956,226,""],
@@ -164,8 +164,8 @@ window.RESTOS = {
   },
   mtr: {
     label: "Montrouge", short: "Montrouge 🥐",
-    home: "Place Jules Ferry", city: "Montrouge, France",
-    lat: 48.81227, lon: 2.32503, radius: 1000,
+    city: "Montrouge, France",
+    radius: 1000,
     list: [
 ["Grill Istanbul","kebab;pizza",48.81305,2.32567,99,""],
 ["Sayuri","japanese;sushi",48.81247,2.32639,102,""],

@@ -346,7 +346,7 @@ details.edit[open] summary::after{content:" ▴"}
     try{ var l = localStorage.getItem(LIEU_KEY); if(l && RESTOS[l]) return l; }catch(e){}
     return "la";
   }
-  function lieu(){ return RESTOS[state.lieu] || {list:[], home:"", city:""}; }
+  function lieu(){ return RESTOS[state.lieu] || {list:[], city:""}; }
   function tags(r){ return r[1] ? r[1].split(";") : []; }
   function restoEmoji(r){
     var t = tags(r);
@@ -358,7 +358,7 @@ details.edit[open] summary::after{content:" ▴"}
     return t.length ? t.slice(0,2).join(" · ") : "Restaurant";
   }
   function fmtDist(m){ return m < 1000 ? m + " m" : (m/1000).toFixed(1).replace(".", ",") + " km"; }
-  function restoLine(r){ return fmtDist(r[4]) + (r[5] ? " · " + r[5] : ""); }
+  function restoLine(r){ return fmtDist(r[4]); }
   function restoMaps(r){
     var L = lieu();
     return "https://www.google.com/maps/search/?api=1&query=" +
@@ -575,7 +575,7 @@ details.edit[open] summary::after{content:" ▴"}
     } else if(state.mode === "sortir"){
       var found = restosFor(it), picks = pickNear(found, 3);
       if(picks.length){
-        nearTitle.textContent = found.length + " adresse" + (found.length > 1 ? "s" : "") + " près de " + L.home;
+        nearTitle.textContent = found.length + " resto" + (found.length > 1 ? "s" : "") + " dans le coin";
         picks.forEach(function(r){
           var li = document.createElement("li"), a = document.createElement("a"),
               b = document.createElement("strong"), sm = document.createElement("small");
@@ -586,7 +586,7 @@ details.edit[open] summary::after{content:" ▴"}
         });
         nearTitle.hidden = false; near.hidden = false;
       }
-      var q = (it.q || it.n) + " near " + L.home + ", " + L.city;
+      var q = (it.q || it.n) + " near " + L.city;
       maps.href = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
       maps.textContent = picks.length ? "Voir tout sur Google Maps" : "Chercher sur Google Maps";
       maps.hidden = false;
@@ -634,7 +634,7 @@ details.edit[open] summary::after{content:" ▴"}
     $("edit").hidden = resto;
     $("shuffle").hidden = !resto;
     var L = lieu();
-    $("home").textContent = "📍 " + L.home + " — " + (L.list ? L.list.length : 0) + " restos dans le coin";
+    $("home").textContent = (L.list ? L.list.length : 0) + " restos dans le coin";
     drawWheel(); if(!resto) drawChips();
   }
 
