@@ -212,9 +212,9 @@ details.edit[open] summary::after{content:" ▴"}
     <p class="home" id="home"></p>
   </header>
 
-  <div class="modes" role="group" aria-label="Où manger">
-    <button type="button" data-mode="sortir" aria-pressed="true">On sort 🍽️</button>
-    <button type="button" data-mode="maison" aria-pressed="false">Maison 🏠</button>
+  <div class="modes" role="group" aria-label="On commande ou on cuisine">
+    <button type="button" data-mode="sortir" aria-pressed="true">On commande 🛵</button>
+    <button type="button" data-mode="maison" aria-pressed="false">On cuisine 🍳</button>
   </div>
 
   <label class="norepeat"><input type="checkbox" id="norepeat"> Pas de redite (7 derniers jours)</label>
@@ -237,7 +237,7 @@ details.edit[open] summary::after{content:" ▴"}
     <ul class="near" id="r-near" hidden></ul>
     <a class="maps" id="r-maps" target="_blank" rel="noopener">Voir sur Google Maps</a>
     <div class="cook" id="cook" hidden>
-      <p class="near-title">Qui cuisine ?</p>
+      <p class="near-title" id="cook-title">Qui cuisine ?</p>
       <div class="cook-wrap">
         <svg class="pointer" viewBox="0 0 34 44" aria-hidden="true">
           <path d="M17 42 C 6 26, 2 18, 2 13 A 15 13 0 0 1 32 13 C 32 18, 28 26, 17 42 Z" fill="#141E38"/>
@@ -245,7 +245,7 @@ details.edit[open] summary::after{content:" ▴"}
         </svg>
         <svg id="cook-svg" viewBox="0 0 200 200" role="img" aria-label="Petite roue : Honey ou Chrobáčik"></svg>
       </div>
-      <button type="button" class="btn" id="cook-spin">🍳 Tourner la petite roue</button>
+      <button type="button" class="btn" id="cook-spin">Tourner la petite roue</button>
       <p class="cook-res" id="cook-res" aria-live="polite"></p>
     </div>
     <button type="button" class="btn eat" id="eat">✅ On mange ça !</button>
@@ -279,8 +279,10 @@ details.edit[open] summary::after{content:" ▴"}
       </div>
       <h3>Les plus mangés</h3>
       <ol id="top"></ol>
-      <h3>Aux fourneaux</h3>
+      <h3>Aux fourneaux 🍳</h3>
       <ol id="cooks"></ol>
+      <h3>Qui paye 💳</h3>
+      <ol id="payers"></ol>
       <h3>Derniers repas</h3>
       <ul id="recent"></ul>
     </div>
@@ -527,7 +529,7 @@ details.edit[open] summary::after{content:" ▴"}
     if(state.current === null) return;
     var it = list()[state.current], btn = $("eat");
     var entry = {mode: state.mode, lieu: state.lieu, name: it.n, emoji: it.e || "", resto: null,
-      who: state.mode === "maison" ? state.cook : null};
+      who: state.cook};
     btn.disabled = true; btn.textContent = "Noté ✓ Bon appétit !";
     if(!CODE){
       entry.id = "local-" + Date.now(); entry.eaten_at = new Date().toISOString();
@@ -567,24 +569,30 @@ details.edit[open] summary::after{content:" ▴"}
       li.appendChild(name); li.appendChild(c); top.appendChild(li);
     });
     if(!order.length) top.innerHTML = '<li class="empty">Rien encore. Tourne la roue puis « On mange ça ».</li>';
-    var cooks = {}, cookOrder = [];
-    rows.forEach(function(h){ if(h.who){ if(!cooks[h.who]){ cooks[h.who] = 0; cookOrder.push(h.who); } cooks[h.who]++; } });
-    cookOrder.sort(function(a,b){ return cooks[b] - cooks[a]; });
-    var ck = $("cooks"); ck.innerHTML = "";
-    cookOrder.forEach(function(w){
-      var li = document.createElement("li"), name = document.createElement("span"), c = document.createElement("span");
-      name.className = "grow"; name.textContent = "👩‍🍳 " + w;
-      c.className = "count"; c.textContent = "×" + cooks[w];
-      li.appendChild(name); li.appendChild(c); ck.appendChild(li);
-    });
-    if(!cookOrder.length) ck.innerHTML = '<li class="empty">Personne n\'a encore cuisiné. Petite roue en mode Maison.</li>';
+    function whoList(id, mode, icon, empty){
+      var n = {}, order = [];
+      rows.forEach(function(h){
+        if(h.who && h.mode === mode){ if(!n[h.who]){ n[h.who] = 0; order.push(h.who); } n[h.who]++; }
+      });
+      order.sort(function(a,b){ return n[b] - n[a]; });
+      var ol = $(id); ol.innerHTML = "";
+      order.forEach(function(w){
+        var li = document.createElement("li"), name = document.createElement("span"), c = document.createElement("span");
+        name.className = "grow"; name.textContent = icon + " " + w;
+        c.className = "count"; c.textContent = "×" + n[w];
+        li.appendChild(name); li.appendChild(c); ol.appendChild(li);
+      });
+      if(!order.length) ol.innerHTML = '<li class="empty">' + empty + '</li>';
+    }
+    whoList("cooks", "maison", "👩‍🍳", "Personne n'a encore cuisiné. Petite roue dans « On cuisine ».");
+    whoList("payers", "sortir", "💳", "Personne n'a encore payé. Petite roue dans « On commande ».");
     var rec = $("recent"); rec.innerHTML = "";
     rows.slice(0, 15).forEach(function(h){
       var li = document.createElement("li"), txt = document.createElement("span"), sm = document.createElement("small"), del = document.createElement("button");
       txt.className = "grow"; txt.textContent = (h.emoji ? h.emoji + " " : "") + h.name + " ";
       var d = new Date(h.eaten_at);
       sm.textContent = (DAY_FMT ? DAY_FMT.format(d) : d.toLocaleDateString()) + " · " + (RESTOS[h.lieu] ? RESTOS[h.lieu].label : "") +
-        (h.mode === "maison" ? " · maison" + (h.who ? " · 🍳 " + h.who : "") : "");
+        (h.mode === "maison" ? " · cuisiné" + (h.who ? " · 🍳 " + h.who : "") : " · commandé" + (h.who ? " · 💳 " + h.who : ""));
       txt.appendChild(document.createElement("br")); txt.appendChild(sm);
       del.type = "button"; del.textContent = "✕"; del.setAttribute("aria-label", "Supprimer " + h.name);
       del.addEventListener("click", function(){ deleteMeal(h); });
@@ -815,7 +823,7 @@ details.edit[open] summary::after{content:" ▴"}
     }
     $("again").disabled = false;
     var eat = $("eat"); eat.disabled = false; eat.textContent = "✅ On mange ça !";
-    resetCook(); $("cook").hidden = state.mode !== "maison";
+    resetCook(); $("cook").hidden = false;
     result.hidden = false;
   }
 
@@ -842,7 +850,7 @@ details.edit[open] summary::after{content:" ▴"}
     });
   }
 
-  /* ---------- Petite roue « Qui cuisine ? » (mode Maison) ---------- */
+  /* ---------- Petite roue : « Qui paye ? » (On commande) / « Qui cuisine ? » (On cuisine) ---------- */
   var COOKS = [{n:"Honey", f:"#A4243B", t:"#FCEFD6"}, {n:"Chrobáčik", f:"#F2B705", t:"#141E38"}];
   var cookRot = 0, cookSpinning = false;
   function drawCookWheel(){
@@ -850,13 +858,15 @@ details.edit[open] summary::after{content:" ▴"}
     out += '<path d="M100 100 L100 6 A94 94 0 0 1 100 194 Z" fill="' + COOKS[0].f + '"/>';
     out += '<path d="M100 100 L100 194 A94 94 0 0 1 100 6 Z" fill="' + COOKS[1].f + '"/>';
     out += '<text x="148" y="105" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="17" fill="' + COOKS[0].t + '">' + esc(COOKS[0].n) + '</text>';
-    out += '<text x="56" y="105" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="13" fill="' + COOKS[1].t + '">' + esc(COOKS[1].n) + '</text>';
+    out += '<text x="49" y="105" text-anchor="middle" font-family="Nunito, system-ui, sans-serif" font-weight="700" font-size="12" fill="' + COOKS[1].t + '">' + esc(COOKS[1].n) + '</text>';
     out += '<circle cx="100" cy="100" r="14" fill="#4A2E1A" stroke="#E09E00" stroke-width="3"/>';
     $("cook-svg").innerHTML = out;
   }
   function resetCook(){
     state.cook = null; $("cook-res").textContent = "";
-    $("cook-spin").textContent = "🍳 Tourner la petite roue";
+    var pay = state.mode === "sortir";
+    $("cook-title").textContent = pay ? "Qui paye ?" : "Qui cuisine ?";
+    $("cook-spin").textContent = (pay ? "💳" : "🍳") + " Tourner la petite roue";
   }
   function spinCook(){
     if(cookSpinning || state.spinning) return;
@@ -873,8 +883,9 @@ details.edit[open] summary::after{content:" ▴"}
     setTimeout(function(){
       cookSpinning = false; $("cook-spin").disabled = false;
       state.cook = COOKS[win].n;
-      $("cook-res").textContent = "👩‍🍳 " + state.cook + " aux fourneaux !";
-      $("cook-spin").textContent = "🍳 Retourner";
+      var pay = state.mode === "sortir";
+      $("cook-res").textContent = pay ? "💳 " + state.cook + " paye !" : "👩‍🍳 " + state.cook + " aux fourneaux !";
+      $("cook-spin").textContent = (pay ? "💳" : "🍳") + " Retourner";
     }, (reduce ? 500 : 2600) + 100);
   }
 
