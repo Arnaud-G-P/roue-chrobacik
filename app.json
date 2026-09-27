@@ -1,0 +1,114 @@
+{
+  "name": "roue-chrobacik",
+  "title": "La roue de Chrobáčik",
+  "description": "Roue en forme de tournesol qui décide quoi manger pour Honey et Chrobáčik : commander (restos Uber Eats à proximité) ou cuisiner, à Los Angeles ou à Paris. Listes, historique des repas et statistiques partagés entre les deux téléphones via Supabase.",
+  "language": "fr",
+  "url": "https://roue-chrobacik.vercel.app",
+  "repository": "https://github.com/Arnaud-G-P/roue-chrobacik",
+  "branch": "claude/epic-mendel-6kq80l",
+
+  "stack": {
+    "frontend": "Une page statique (index.html) : HTML, CSS et JavaScript inline, sans build ni dépendance",
+    "hosting": "Vercel (projet roue-chrobacik, équipe ga-5156s-projects), déploiement automatique à chaque push sur la branche",
+    "backend": "Supabase (projet tmqupjtrsqxadrgziqzn, région us-west-1) : tables + fonctions RPC appelées en REST",
+    "external": ["Google Fonts (Playfair Display, Caveat, Nunito)", "Uber Eats (liens vers les restos)"]
+  },
+
+  "files": {
+    "index.html": "Toute l'application",
+    "lieux.js": "Les deux lieux (Los Angeles, Paris) : libellé et ville",
+    "test-uber.html": "Page de test des formats de liens qui ouvrent l'app Uber Eats sur Android",
+    "supabase/migrations/20260926_meal_history.sql": "Historique des repas (wheel_history) + fonctions log_meal, get_history, delete_meal",
+    "supabase/migrations/20260926_devices.sql": "Appareils (wheel_devices) + fonctions ping_device, get_devices",
+    "supabase/migrations/20260926_restos.sql": "Restaurants OpenStreetMap (restos), plus utilisés par la page",
+    "supabase/migrations/20260926_ue_stores.sql": "Restos Uber Eats (ue_stores) + outils de scrape (schéma privé scrape)"
+  },
+
+  "features": {
+    "lieux": {
+      "options": ["la", "mtr"],
+      "labels": {"la": "Los Angeles 🌴", "mtr": "Paris 🥐"},
+      "note": "Le choix est mémorisé sur chaque téléphone"
+    },
+    "modes": {
+      "sortir": {
+        "label": "On commande 🛵",
+        "roue": "Cuisines (Tacos, Pizza, Sushi, Ramen, Burger, Poke, Thaï, Korean BBQ, Falafel, Brunch, Persan, Dim sum, Indien, Phở, Italien, Burrito, Poulet frit, Hot pot)",
+        "resultat": "3 restos Uber Eats proches de la cuisine tirée avec lien direct, bouton « Voir les N restos », lien « Tout voir sur Uber Eats » (copie la cuisine puis ouvre l'app)",
+        "filtre": "Une cuisine sans resto Uber Eats connu est grisée et ne peut pas sortir",
+        "petite_roue": "Qui paye ? (Honey / Chrobáčik)"
+      },
+      "maison": {
+        "label": "On cuisine 🍳",
+        "roue": "Plats simples (Mac & cheese, Tacos maison, Pâtes à l'ail, Omelette, Riz sauté, Quesadilla, Soupe, Grilled cheese, Pancakes, Salade bowl, Curry, Chili, Nouilles sautées, Pizza maison, Burger maison, Gratin, Wraps, Shakshuka)",
+        "petite_roue": "Qui cuisine ? (Honey / Chrobáčik)"
+      }
+    },
+    "veto": "2 vetos par tour : l'option refusée est barrée et la roue repart",
+    "relancer": "Relance libre, avec des remarques de plus en plus moqueuses",
+    "on_mange_ca": "Enregistre le repas (mode, lieu, plat, qui paye / qui cuisine) dans l'historique partagé",
+    "pas_de_redite": "Option qui grise ce qui a été mangé ces 7 derniers jours",
+    "modifier_la_roue": "Ajouter / retirer des options, revenir à la liste d'origine ; listes partagées",
+    "nos_repas": "Les plus mangés (30 jours, 1 an, tout), Aux fourneaux, Qui paye, 15 derniers repas avec suppression",
+    "utilisateurs": "Nombre d'appareils qui utilisent la roue partagée, actifs cette semaine, visites",
+    "code_partage": "Un code secret, saisi une fois par téléphone (ou via le lien #k=…), donne accès aux données partagées. Tolère majuscules, espaces et apostrophe typographique."
+  },
+
+  "supabase": {
+    "url": "https://tmqupjtrsqxadrgziqzn.supabase.co",
+    "publishable_key": "sb_publishable_3WrBTW97X-LKOGP_0J6DYQ_5Dmu2Gbn",
+    "secret": "Le code n'est jamais stocké en clair : seule son empreinte SHA-256 est dans wheel_secret. Le code n'est pas dans ce dépôt.",
+    "tables": {
+      "wheel_lists": "Listes de la roue par mode (sortir, maison). Privée, accès par get_wheel / set_wheel.",
+      "wheel_secret": "Empreinte du code secret. Privée.",
+      "wheel_history": "Repas enregistrés (date, mode, lieu, nom, emoji, who). Privée, accès par log_meal / get_history / delete_meal.",
+      "wheel_devices": "Appareils (identifiant anonyme, plateforme, première et dernière visite, nombre de visites). Privée, accès par ping_device / get_devices.",
+      "ue_stores": "Restos Uber Eats proches (nom, catégories, adresse, lien direct, distance si connue). Lecture publique.",
+      "restos": "Restaurants OpenStreetMap à 3 km (LA) et 2,5 km (Paris). Lecture publique, plus utilisée par la page."
+    },
+    "rpc": {
+      "get_wheel(p_code)": "Listes partagées",
+      "set_wheel(p_code, p_mode, p_items)": "Enregistre une liste (2 à 60 options)",
+      "log_meal(p_code, p_mode, p_lieu, p_name, p_emoji, p_resto, p_who)": "Ajoute un repas",
+      "get_history(p_code, p_limit)": "Derniers repas (500 par défaut)",
+      "delete_meal(p_code, p_id)": "Supprime un repas",
+      "ping_device(p_code, p_device, p_platform)": "Signale une visite de l'appareil",
+      "get_devices(p_code)": "Liste des appareils"
+    },
+    "security": "RLS activé partout, aucun accès direct aux tables privées ; toutes les fonctions vérifient le code et sont réservées au rôle anon."
+  },
+
+  "data": {
+    "uber_eats": {
+      "source": "Pages publiques ubereats.com/<fr/>category/<ville>/<cuisine> (autorisées par robots.txt), 31 cuisines",
+      "villes": {"la": ["los-angeles-ca", "beverly-hills-ca", "santa-monica-ca", "culver-city-ca"], "mtr": ["montrouge-idf", "malakoff-idf", "vanves-idf", "arcueil-idf", "paris-idf"]},
+      "filtre": "Codes postaux proches ; supérettes exclues",
+      "volume": {"la": 120, "mtr": 73},
+      "date": "2026-09-26",
+      "limite": "Uber ne publie qu'une vingtaine de restos populaires par cuisine et par ville : ce n'est pas la liste complète de ce qui livre à votre adresse."
+    },
+    "openstreetmap": {
+      "source": "API Overpass (amenity=restaurant, fast_food, food_court)",
+      "volume": {"la": 383, "mtr": 811},
+      "usage": "Sert à calculer la distance des restos Uber Eats retrouvés par leur nom"
+    }
+  },
+
+  "local_storage": {
+    "roue-chrobacik-v2": "Copie locale des listes",
+    "roue-chrobacik-code": "Code partagé saisi sur ce téléphone",
+    "roue-chrobacik-lieu": "Dernier lieu choisi",
+    "roue-chrobacik-history": "Copie locale de l'historique",
+    "roue-chrobacik-norepeat": "Option « Pas de redite »",
+    "roue-chrobacik-device": "Identifiant anonyme de l'appareil",
+    "roue-chrobacik-ue-v1": "Copie locale des restos Uber Eats"
+  },
+
+  "known_limits": [
+    "L'app Uber Eats n'accepte pas de recherche ou de catégorie depuis un lien : « Tout voir sur Uber Eats » copie la cuisine, il faut la coller dans la recherche de l'app.",
+    "Brave sur Android ouvre les liens Uber Eats dans le site ; la page utilise des liens Android « intent » pour forcer l'app. En test (test-uber.html).",
+    "Dernier qui écrit gagne sur les listes : deux modifications simultanées, l'une est perdue.",
+    "Plan gratuit Supabase : pause après 7 jours sans activité (la page passe en « Hors ligne » et garde les dernières données).",
+    "Un même téléphone peut compter comme deux appareils (données effacées, raccourci écran d'accueil)."
+  ]
+}
